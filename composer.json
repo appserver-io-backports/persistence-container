@@ -1,0 +1,17 @@
+{
+    "name": "techdivision/persistencecontainer",
+    "type": "package",
+    "description": "Persistence container implementation for thread based PHP ApplicationServer.",
+    "homepage": "https://github.com/techdivision/TechDivision_ApplicationServer",
+    "license": ["OSL-3.0"],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/techdivision/TechDivision_PersistenceContainer"
+        }
+    ],
+    "require": {
+        "php" : ">=5.4.0",
+        "techdivision/appserver": "*"
+    }
+}
