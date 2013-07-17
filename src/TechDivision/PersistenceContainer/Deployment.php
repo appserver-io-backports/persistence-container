@@ -34,16 +34,40 @@ class Deployment {
      * XPath expression for the application configurations.
      * @var string
      */
-    const XPATH_APPLICATIONS = '/datasources/datasource';
+    const DATASOURCES_DATASOURCE = '/datasources/datasource';
 
+    /**
+     * XPath expression for the datasource name.
+     * @var string
+     */
+    const DATASOURCE_NAME = '/datasource/name';
+
+    /**
+     * The container thread
+     * @var \TechDivision\ApplicationServer\ContainerThread
+     */
     protected $containerThread;
 
+    /**
+     * Array with the initialized applications.
+     * @var array
+     */
     protected $applications;
 
+    /**
+     * Initializes the deployment with the container thread.
+     *
+     * @param \TechDivision\ApplicationServer\ContainerThread $containerThread
+     */
     public function __construct($containerThread) {
         $this->containerThread = $containerThread;
     }
 
+    /**
+     * Returns the container thread.
+     *
+     * @return \TechDivision\ApplicationServer\ContainerThread The container thread
+     */
     public function getContainerThread() {
         return $this->containerThread;
     }
@@ -93,19 +117,19 @@ class Deployment {
                     throw new InvalidApplicationArchiveException(sprintf('Folder %s contains no valid webapp.', $folder));
                 }
 
+                // load and initialize the database configuration
                 $databaseConfiguration = Configuration::loadFromFile($ds);
-
-                foreach ($databaseConfiguration->getChilds('/datasources/datasource') as $datasource) {
+                foreach ($databaseConfiguration->getChilds(self::DATASOURCES_DATASOURCE) as $datasource) {
 
                     // initialize the application instance
                     $application = $this->newInstance($datasource->getType(), array($name));
                     $application->setConfiguration($configuration);
                     $application->setDatabaseConfiguration($datasource);
 
-                    error_log($datasource->getChilds('/name'));
-
-                    $this->applications[$datasource->getDataSourceName()] = $application->connect();
-
+                    // set the datasource name
+                    foreach ($datasource->getChilds(self::DATASOURCE_NAME) as $name) {
+                        $this->applications[$name->getValue()] = $application->connect();
+                    }
                 }
             }
         }
