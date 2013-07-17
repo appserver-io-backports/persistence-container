@@ -36,12 +36,6 @@ class Application {
     protected $name;
 
     /**
-     * The path to the web application.
-     * @var string
-     */
-    protected $webappPath;
-
-    /**
      * The data source name to use.
      * @var string
      */
@@ -58,6 +52,18 @@ class Application {
      * @var \Doctrine\Common\Persistence\ObjectManager 
      */
     protected $entityManager;
+
+    /**
+     * The host configuration.
+     * @var \TechDivision\ApplicationServer\Configuration
+     */
+    protected $configuration;
+
+    /**
+     * The database configuration.
+     * @var \TechDivision\ApplicationServer\Configuration
+     */
+    protected $databaseConfiguration;
     
     /**
      * Array with the connection parameters.
@@ -74,32 +80,6 @@ class Application {
         $this->name = $name;
     }
     
-    public function init($configuration) {
-    
-    	// error_log(var_export($configuration->getChilds('/datasource/name'), true));
-
-		// initialize the application instance
-		$this->setDataSourceName($configuration->getChild('/datasource/name')->getValue());
-		$this->setPathToEntities($configuration->getChild('/datasource/pathToEntities')->getValue());
-
-		// load the database connection information
-		foreach ($configuration->getChilds('/datasource/database') as $database) {
-		
-			// error_log(var_export($database->getChilds('/database'), true));
-		
-			$this->setConnectionParameters(
-				array(
-					'driver' => $database->getChild('/database/driver')->getValue(),
-					'user' => $database->getChild('/database/user')->getValue(),
-					'password' => $database->getChild('/database/password')->getValue(),
-					'dbname' => $database->getChild('/database/databaseName')->getValue(),
-				)
-			);
-		}
-    	
-    	return $this;
-    }
-    
     /**
      * Has been automatically invoked by the container after the application
      * instance has been created.
@@ -108,20 +88,26 @@ class Application {
      */
     public function connect() {
 
-        $pathToEntities = array($this->getPathToEntities());
-        
-        // load the doctrine metadata information
-        $metadataConfiguration = Setup::createAnnotationMetadataConfiguration($pathToEntities, true);
-        
-        // load the connection parameters
-        $connectionParameters = $this->getConnectionParameters();
-        
-        // initialize the entity manager
-        $entityManager = EntityManager::create($connectionParameters, $metadataConfiguration);
-        
-        // set the entity manager
-        $this->setEntityManager($entityManager);
-        
+        // load the database configuration
+        $configuration = $this->getDatabaseConfiguration();
+
+        // initialize the application instance
+        $this->setDataSourceName($configuration->getChild('/datasource/name')->getValue());
+        $this->setPathToEntities($configuration->getChild('/datasource/pathToEntities')->getValue());
+
+        // load the database connection information
+        foreach ($configuration->getChilds('/datasource/database') as $database) {
+
+            $this->setConnectionParameters(
+                array(
+                    'driver' => $database->getChild('/database/driver')->getValue(),
+                    'user' => $database->getChild('/database/user')->getValue(),
+                    'password' => $database->getChild('/database/password')->getValue(),
+                    'dbname' => $database->getChild('/database/databaseName')->getValue(),
+                )
+            );
+        }
+
         // return the instance itself
         return $this;
     }
@@ -134,6 +120,64 @@ class Application {
      */
     public function getName() {
         return $this->name;
+    }
+
+    /**
+     * Set's the database configuration.
+     *
+     * @param TechDivision\ApplicationServer\Configuration $databaseConfiguration The database configuration
+     * @return \TechDivision\ServletContainer\Application The application instance
+     */
+    public function setDatabaseConfiguration($databaseConfiguration) {
+        $this->databaseConfiguration = $databaseConfiguration;
+        return $this;
+    }
+
+    /**
+     * Returns the database configuration.
+     *
+     * @return \TechDivision\ApplicationServer\Configuration The database configuration
+     */
+    public function getDatabaseConfiguration() {
+        return $this->databaseConfiguration;
+    }
+
+    /**
+     * Set's the host configuration.
+     *
+     * @param TechDivision\ApplicationServer\Configuration $configuration The host configuration
+     * @return \TechDivision\ServletContainer\Application The application instance
+     */
+    public function setConfiguration($configuration) {
+        $this->configuration = $configuration;
+        return $this;
+    }
+
+    /**
+     * Returns the host configuration.
+     *
+     * @return \TechDivision\ApplicationServer\Configuration The host configuration
+     */
+    public function getConfiguration() {
+        return $this->configuration;
+    }
+
+    /**
+     * Returns the path to the appserver webapp base directory.
+     *
+     * @return string The path to the appserver webapp base directory
+     */
+    public function getAppBase() {
+        return $this->getConfiguration()->getChild(self::CONTAINER_HOST)->getAppBase();
+    }
+
+    /**
+     * Return's the path to the web application.
+     *
+     * @return string The path to the web application
+     */
+    public function getWebappPath() {
+        return $this->getAppBase() . DS . $this->getName();
     }
 
     /**
@@ -212,27 +256,18 @@ class Application {
      * @return \Doctrine\Common\Persistence\ObjectManager The entity manager instance
      */
     public function getEntityManager() {
-        return $this->entityManager;
-    }
 
-    /**
-     * Set's the path to the web application.
-     *
-     * @param string $webappPath The path to the web application
-     * @return \TechDivision\ServletContainer\Application The application instance
-     */
-    public function setWebappPath($webappPath) {
-        $this->webappPath = $webappPath;
-        return $this;
-    }
+        // initialize path to entities
+        $pathToEntities = array($this->getPathToEntities());
 
-    /**
-     * Return's the path to the web application.
-     *
-     * @return string The path to the web application
-     */
-    public function getWebappPath() {
-        return $this->webappPath;
+        // load the doctrine metadata information
+        $metadataConfiguration = Setup::createAnnotationMetadataConfiguration($pathToEntities, true);
+
+        // load the connection parameters
+        $connectionParameters = $this->getConnectionParameters();
+
+        // initialize the entity manager
+        return EntityManager::create($connectionParameters, $metadataConfiguration);
     }
     
     /**
