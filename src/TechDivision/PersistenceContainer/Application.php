@@ -28,6 +28,12 @@ use Doctrine\ORM\Tools\Setup;
  * @author      Tim Wagner <tw@techdivision.com>
  */
 class Application {
+
+    /**
+     * Path to the container's host configuration.
+     * @var string
+     */
+    const CONTAINER_HOST = '/container/host';
     
     /**
      * The unique application name.
@@ -93,19 +99,31 @@ class Application {
 
         // initialize the application instance
         $this->setDataSourceName($configuration->getChild('/datasource/name')->getValue());
-        $this->setPathToEntities($configuration->getChild('/datasource/pathToEntities')->getValue());
+        $this->setPathToEntities($this->getWebappPath() . DS . $configuration->getChild('/datasource/pathToEntities')->getValue());
 
         // load the database connection information
         foreach ($configuration->getChilds('/datasource/database') as $database) {
 
-            $this->setConnectionParameters(
-                array(
-                    'driver' => $database->getChild('/database/driver')->getValue(),
-                    'user' => $database->getChild('/database/user')->getValue(),
-                    'password' => $database->getChild('/database/password')->getValue(),
-                    'dbname' => $database->getChild('/database/databaseName')->getValue(),
-                )
+            // initialize the connection parameters
+            $connectionParameters = array(
+                'driver' => $database->getChild('/database/driver')->getValue(),
+                'user' => $database->getChild('/database/user')->getValue(),
+                'password' => $database->getChild('/database/password')->getValue()
             );
+
+            // initialize database driver specific connection parameters
+            if (($databaseName = $database->getChild('/database/databaseName')) != null) {
+                $connectionParameters['dbname'] = $databaseName->getValue();
+            }
+            if (($path = $database->getChild('/database/path')) != null) {
+                $connectionParameters['path'] = $this->getWebappPath() . DS . $path->getValue();
+            }
+            if (($memory = $database->getChild('/database/memory')) != null) {
+                $connectionParameters['memory'] = $memory->getValue();
+            }
+
+            // set the connection parameters
+            $this->setConnectionParameters($connectionParameters);
         }
 
         // return the instance itself
@@ -125,7 +143,7 @@ class Application {
     /**
      * Set's the database configuration.
      *
-     * @param TechDivision\ApplicationServer\Configuration $databaseConfiguration The database configuration
+     * @param \TechDivision\ApplicationServer\Configuration $databaseConfiguration The database configuration
      * @return \TechDivision\ServletContainer\Application The application instance
      */
     public function setDatabaseConfiguration($databaseConfiguration) {
@@ -145,7 +163,7 @@ class Application {
     /**
      * Set's the host configuration.
      *
-     * @param TechDivision\ApplicationServer\Configuration $configuration The host configuration
+     * @param \TechDivision\ApplicationServer\Configuration $configuration The host configuration
      * @return \TechDivision\ServletContainer\Application The application instance
      */
     public function setConfiguration($configuration) {
