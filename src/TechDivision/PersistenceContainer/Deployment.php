@@ -25,6 +25,12 @@ use TechDivision\ApplicationServer\InitialContext;
 class Deployment {
 
     /**
+     * Path to the container's base directory.
+     * @var string
+     */
+    const CONTAINER_BASE_DIRECTORY = '/container/baseDirectory';
+
+    /**
      * Path to the container's host configuration.
      * @var string
      */
@@ -85,7 +91,6 @@ class Deployment {
      * Returns an array with available applications.
      *
      * @return \TechDivision\Server The server instance
-     * @todo Implement real deployment here
      */
     public function deploy() {
 
@@ -93,11 +98,12 @@ class Deployment {
         $containerThread = $this->getContainerThread();
         $configuration = $containerThread->getConfiguration();
 
-        // load the host configuration for the path to the webapps folder
-        $host = $configuration->getChild(self::CONTAINER_HOST);
+        // load the host configuration for the path to the web application folder
+        $baseDirectory = $configuration->getChild(self::CONTAINER_BASE_DIRECTORY)->getValue();
+        $appBase = $configuration->getChild(self::CONTAINER_HOST)->getAppBase();
 
         // gather all the deployed web applications
-        foreach (new \FilesystemIterator($host->getAppBase()) as $folder) {
+        foreach (new \FilesystemIterator($baseDirectory . $appBase) as $folder) {
 
             // check if file or subdirectory has been found
             if (is_dir($folder . DS . 'META-INF')) {

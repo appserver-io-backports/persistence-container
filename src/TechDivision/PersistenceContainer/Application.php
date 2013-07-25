@@ -34,6 +34,12 @@ class Application {
      * @var string
      */
     const CONTAINER_HOST = '/container/host';
+
+    /**
+     * Path to the container's base directory.
+     * @var string
+     */
+    const CONTAINER_BASE_DIRECTORY = '/container/baseDirectory';
     
     /**
      * The unique application name.
@@ -186,7 +192,9 @@ class Application {
      * @return string The path to the appserver webapp base directory
      */
     public function getAppBase() {
-        return $this->getConfiguration()->getChild(self::CONTAINER_HOST)->getAppBase();
+        $baseDir = $this->getConfiguration()->getChild(self::CONTAINER_BASE_DIRECTORY)->getValue();
+        $appBase = $this->getConfiguration()->getChild(self::CONTAINER_HOST)->getAppBase();
+        return $baseDir . $appBase;
     }
 
     /**
