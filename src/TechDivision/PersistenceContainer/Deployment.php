@@ -12,8 +12,8 @@
 
 namespace TechDivision\PersistenceContainer;
 
+use TechDivision\ApplicationServer\AbstractDeployment;
 use TechDivision\ApplicationServer\Configuration;
-use TechDivision\ApplicationServer\InitialContext;
 
 /**
  * @package     TechDivision\PersistenceContainer
@@ -22,19 +22,7 @@ use TechDivision\ApplicationServer\InitialContext;
  *              Open Software License (OSL 3.0)
  * @author      Tim Wagner <tw@techdivision.com>
  */
-class Deployment {
-
-    /**
-     * Path to the container's base directory.
-     * @var string
-     */
-    const CONTAINER_BASE_DIRECTORY = '/container/baseDirectory';
-
-    /**
-     * Path to the container's host configuration.
-     * @var string
-     */
-    const CONTAINER_HOST = '/container/host';
+class Deployment extends AbstractDeployment {
 
     /**
      * XPath expression for the application configurations.
@@ -47,45 +35,6 @@ class Deployment {
      * @var string
      */
     const DATASOURCE_NAME = '/datasource/name';
-
-    /**
-     * The container thread
-     * @var \TechDivision\ApplicationServer\ContainerThread
-     */
-    protected $containerThread;
-
-    /**
-     * Array with the initialized applications.
-     * @var array
-     */
-    protected $applications;
-
-    /**
-     * Initializes the deployment with the container thread.
-     *
-     * @param \TechDivision\ApplicationServer\ContainerThread $containerThread
-     */
-    public function __construct($containerThread) {
-        $this->containerThread = $containerThread;
-    }
-
-    /**
-     * Returns the container thread.
-     *
-     * @return \TechDivision\ApplicationServer\ContainerThread The container thread
-     */
-    public function getContainerThread() {
-        return $this->containerThread;
-    }
-
-    /**
-     * Returns the deployed applications.
-     *
-     * @return array The deployed applications
-     */
-    public function getApplications() {
-        return $this->applications;
-    }
 
     /**
      * Returns an array with available applications.
@@ -142,17 +91,5 @@ class Deployment {
 
         // return the server instance
         return $this;
-    }
-
-    /**
-     * Creates a new instance of the passed class name and passes the
-     * args to the instance constructor.
-     *
-     * @param string $className The class name to create the instance of
-     * @param array $args The parameters to pass to the constructor
-     * @return object The created instance
-     */
-    public function newInstance($className, array $args = array()) {
-        return InitialContext::get()->newInstance($className, $args);
     }
 }
