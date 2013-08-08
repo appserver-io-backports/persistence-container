@@ -77,7 +77,7 @@ class Deployment extends AbstractDeployment {
                 foreach ($databaseConfiguration->getChilds(self::DATASOURCES_DATASOURCE) as $datasource) {
 
                     // initialize the application instance
-                    $application = $this->newInstance($datasource->getType(), array($name));
+                    $application = $this->newInstance($datasource->getType(), array($this->initialContext, $name));
                     $application->setConfiguration($configuration);
                     $application->setDatabaseConfiguration($datasource);
 

@@ -88,7 +88,8 @@ class Application {
      * 
      * @param type $name The application name
      */
-    public function __construct($name) {
+    public function __construct($initialContext, $name) {
+        $this->initialContext = $initialContext;
         $this->name = $name;
     }
     
@@ -304,6 +305,6 @@ class Application {
      * @return type
      */
     public function lookup($className, $sessionId) {
-        return InitialContext::get()->lookup($className, $sessionId, array($this));
+        return $this->initialContext->lookup($className, $sessionId, array($this));
     }
 }
