@@ -12,10 +12,10 @@
 
 namespace TechDivision\PersistenceContainer;
 
+use TechDivision\ApplicationServer\AbstractThread;
 use TechDivision\ApplicationServer\Interfaces\ContainerInterface;
 use TechDivision\PersistenceContainerClient\Interfaces\RemoteMethod;
 use TechDivision\Socket\Client;
-use TechDivision\SplClassLoader;
 
 /**
  * The thread implementation that handles the request.
@@ -26,7 +26,7 @@ use TechDivision\SplClassLoader;
  *              Open Software License (OSL 3.0)
  * @author      Johann Zelger <jz@techdivision.com>
  */
-class ThreadRequest extends \Thread {
+class ThreadRequest extends AbstractThread {
 
     /**
      * Holds the container instance
@@ -49,19 +49,15 @@ class ThreadRequest extends \Thread {
      * @param resource $resource The client socket instance
      * @return void
      */
-    public function __construct(ContainerInterface $container, $resource) {
+    public function init(ContainerInterface $container, $resource) {
         $this->container = $container;
         $this->resource = $resource;
     }
     
     /**
-     * @see \Thread::run()
+     * @see AbstractThread::main()
      */
-    public function run() {
-
-        // register class loader again, because we are in a thread
-        $classLoader = new SplClassLoader();
-        $classLoader->register();
+    public function main() {
 
         // initialize a new client socket
         $client = new Client();
