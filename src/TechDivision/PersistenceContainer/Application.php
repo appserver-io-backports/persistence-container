@@ -67,7 +67,12 @@ class Application extends AbstractApplication
      * @return \TechDivision\PersistenceContainer\Application The connected application
      */
     public function connect() {
-
+        
+        // initialize the class loader with the additional folders
+        set_include_path(get_include_path() . PS . $this->getWebappPath());
+        set_include_path(get_include_path() . PS . $this->getWebappPath() . DS . 'META-INF' . DS . 'classes'); 
+        set_include_path(get_include_path() . PS . $this->getWebappPath() . DS . 'META-INF' . DS . 'lib');
+        
         // load the database configuration
         $configuration = $this->getDatabaseConfiguration();
 

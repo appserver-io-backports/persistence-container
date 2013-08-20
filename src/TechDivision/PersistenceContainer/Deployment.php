@@ -56,14 +56,7 @@ class Deployment extends AbstractDeployment {
 
             // check if file or subdirectory has been found
             if (is_dir($folder . DS . 'META-INF')) {
-
-                // add the servlet-specific include path
-                set_include_path($folder . PS . get_include_path());
-
-                // set the additional servlet include paths
-                set_include_path($folder . DS . 'META-INF' . DS . 'classes' . PS . get_include_path());
-                set_include_path($folder . DS . 'META-INF' . DS . 'lib' . PS . get_include_path());
-
+                
                 // initialize the application name
                 $name = basename($folder);
 
@@ -73,7 +66,8 @@ class Deployment extends AbstractDeployment {
                 }
 
                 // load and initialize the database configuration
-                $databaseConfiguration = Configuration::loadFromFile($ds);
+                $databaseConfiguration = $this->newInstance('TechDivision\ApplicationServer\Configuration');
+                $databaseConfiguration->initFromFile($ds);
                 foreach ($databaseConfiguration->getChilds(self::DATASOURCES_DATASOURCE) as $datasource) {
 
                     // initialize the application instance
