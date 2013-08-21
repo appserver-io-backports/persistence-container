@@ -12,7 +12,7 @@
 
 namespace TechDivision\PersistenceContainer;
 
-use TechDivision\ApplicationServer\AbstractThread;
+use TechDivision\ApplicationServer\AbstractContextThread;
 use TechDivision\ApplicationServer\Interfaces\ContainerInterface;
 use TechDivision\PersistenceContainerClient\Interfaces\RemoteMethod;
 use TechDivision\Socket\Client;
@@ -26,7 +26,7 @@ use TechDivision\Socket\Client;
  *              Open Software License (OSL 3.0)
  * @author      Johann Zelger <jz@techdivision.com>
  */
-class ThreadRequest extends AbstractThread {
+class ThreadRequest extends AbstractContextThread {
 
     /**
      * Holds the container instance
@@ -52,18 +52,6 @@ class ThreadRequest extends AbstractThread {
     public function init(ContainerInterface $container, $resource) {
         $this->container = $container;
         $this->resource = $resource;
-    }
-    
-    /**
-     * Creates a new instance of the passed class name and passes the
-     * args to the instance constructor.
-     * 
-     * @param string $className The class name to create the instance of
-     * @param array $args The parameters to pass to the constructor
-     * @return object The created instance
-     */
-    public function newInstance($className, array $args = array()) {
-        return $this->getContainer()->newInstance($className, $args);
     }
     
     /**
