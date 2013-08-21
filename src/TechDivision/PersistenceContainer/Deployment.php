@@ -55,13 +55,13 @@ class Deployment extends AbstractDeployment {
         foreach (new \FilesystemIterator($baseDirectory . $appBase) as $folder) {
 
             // check if file or subdirectory has been found
-            if (is_dir($folder . DS . 'META-INF')) {
+            if (is_dir($folder . DIRECTORY_SEPARATOR . 'META-INF')) {
                 
                 // initialize the application name
                 $name = basename($folder);
 
                 // it's no valid application without at least the appserver-ds.xml file
-                if (!file_exists($ds = $folder . DS . 'META-INF' . DS . 'appserver-ds.xml')) {
+                if (!file_exists($ds = $folder . DIRECTORY_SEPARATOR . 'META-INF' . DIRECTORY_SEPARATOR . 'appserver-ds.xml')) {
                     throw new InvalidApplicationArchiveException(sprintf('Folder %s contains no valid webapp.', $folder));
                 }
 

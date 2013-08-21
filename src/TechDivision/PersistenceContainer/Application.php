@@ -69,16 +69,16 @@ class Application extends AbstractApplication
     public function connect() {
         
         // initialize the class loader with the additional folders
-        set_include_path(get_include_path() . PS . $this->getWebappPath());
-        set_include_path(get_include_path() . PS . $this->getWebappPath() . DS . 'META-INF' . DS . 'classes'); 
-        set_include_path(get_include_path() . PS . $this->getWebappPath() . DS . 'META-INF' . DS . 'lib');
+        set_include_path(get_include_path() . PATH_SEPARATOR . $this->getWebappPath());
+        set_include_path(get_include_path() . PATH_SEPARATOR . $this->getWebappPath() . DIRECTORY_SEPARATOR . 'META-INF' . DIRECTORY_SEPARATOR . 'classes');
+        set_include_path(get_include_path() . PATH_SEPARATOR . $this->getWebappPath() . DIRECTORY_SEPARATOR . 'META-INF' . DIRECTORY_SEPARATOR . 'lib');
         
         // load the database configuration
         $configuration = $this->getDatabaseConfiguration();
 
         // initialize the application instance
         $this->setDataSourceName($configuration->getChild('/datasource/name')->getValue());
-        $this->setPathToEntities($this->getWebappPath() . DS . $configuration->getChild('/datasource/pathToEntities')->getValue());
+        $this->setPathToEntities($this->getWebappPath() . DIRECTORY_SEPARATOR . $configuration->getChild('/datasource/pathToEntities')->getValue());
 
         // load the database connection information
         foreach ($configuration->getChilds('/datasource/database') as $database) {
@@ -95,7 +95,7 @@ class Application extends AbstractApplication
                 $connectionParameters['dbname'] = $databaseName->getValue();
             }
             if (($path = $database->getChild('/database/path')) != null) {
-                $connectionParameters['path'] = $this->getWebappPath() . DS . $path->getValue();
+                $connectionParameters['path'] = $this->getWebappPath() . DIRECTORY_SEPARATOR . $path->getValue();
             }
             if (($memory = $database->getChild('/database/memory')) != null) {
                 $connectionParameters['memory'] = $memory->getValue();
