@@ -28,13 +28,13 @@ class Deployment extends AbstractDeployment {
      * XPath expression for the application configurations.
      * @var string
      */
-    const DATASOURCES_DATASOURCE = '/datasources/datasource';
+    const XPATH_DATASOURCES_DATASOURCE = '/datasources/datasource';
 
     /**
      * XPath expression for the datasource name.
      * @var string
      */
-    const DATASOURCE_NAME = '/datasource/name';
+    const XPATH_DATASOURCE_NAME = '/datasource/name';
 
     /**
      * Returns an array with available applications.
@@ -48,8 +48,8 @@ class Deployment extends AbstractDeployment {
         $configuration = $containerThread->getConfiguration();
 
         // load the host configuration for the path to the web application folder
-        $baseDirectory = $configuration->getChild(self::CONTAINER_BASE_DIRECTORY)->getValue();
-        $appBase = $configuration->getChild(self::CONTAINER_HOST)->getAppBase();
+        $baseDirectory = $configuration->getChild(self::XPATH_CONTAINER_BASE_DIRECTORY)->getValue();
+        $appBase = $configuration->getChild(self::XPATH_CONTAINER_HOST)->getAppBase();
 
         // gather all the deployed web applications
         foreach (new \FilesystemIterator($baseDirectory . $appBase) as $folder) {
@@ -68,7 +68,7 @@ class Deployment extends AbstractDeployment {
                 // load and initialize the database configuration
                 $databaseConfiguration = $this->newInstance('TechDivision\ApplicationServer\Configuration');
                 $databaseConfiguration->initFromFile($ds);
-                foreach ($databaseConfiguration->getChilds(self::DATASOURCES_DATASOURCE) as $datasource) {
+                foreach ($databaseConfiguration->getChilds(self::XPATH_DATASOURCES_DATASOURCE) as $datasource) {
 
                     // initialize the application instance
                     $application = $this->newInstance($datasource->getType(), array($this->initialContext, $name));
@@ -76,7 +76,7 @@ class Deployment extends AbstractDeployment {
                     $application->setDatabaseConfiguration($datasource);
 
                     // set the datasource name
-                    foreach ($datasource->getChilds(self::DATASOURCE_NAME) as $name) {
+                    foreach ($datasource->getChilds(self::XPATH_DATASOURCE_NAME) as $name) {
                         $this->applications[$name->getValue()] = $application->connect();
                     }
                 }
