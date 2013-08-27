@@ -102,16 +102,10 @@ class ThreadRequest extends AbstractContextThread {
                 // send the data back to the client
                 $client->sendLine(serialize($response));
 
-                // close the socket immediately
-                $client->close();
-
             } catch (\Exception $e) {
 
                 // log the stack trace
                 error_log($e->__toString());
-
-                // close the socket immediately
-                $client->close();
             }
 
         } else {
@@ -120,9 +114,14 @@ class ThreadRequest extends AbstractContextThread {
 
         // try to shutdown client socket
         try {
+
             $client->shutdown();
+            $client->close();
+            
         } catch (\Exception $e) {
-            // do nothing due to peer closed connection already
+            
+            $client->close();
+            
         }
 
         unset($client);
