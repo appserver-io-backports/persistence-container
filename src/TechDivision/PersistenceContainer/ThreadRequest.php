@@ -102,7 +102,7 @@ class ThreadRequest extends AbstractContextThread
                 ), $parameters);
 
             } catch (\Exception $e) {
-                $response = new \Exception($e);
+                $response = $e;
             }
 
             try {
