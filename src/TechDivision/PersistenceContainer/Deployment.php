@@ -63,7 +63,7 @@ class Deployment extends AbstractDeployment
      * Deploys the datasource found for the passed app node in the app's webapp folder.
      *
      * @param \TechDivision\ApplicationServer\Api\Node\AppNode $appNode
-     * @param string $folder
+     * @param \SplFileInfo $folder
      *            Folder to check for datasources
      * @return void
      */
