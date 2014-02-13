@@ -28,7 +28,7 @@ class Deployment extends AbstractDeployment
     /**
      * Returns an array with available applications.
      *
-     * @return \TechDivision\Server The server instance
+     * @return \TechDivision\ApplicationServer\Interfaces\DeploymentInterface The deployment instance
      */
     public function deploy()
     {
@@ -63,7 +63,7 @@ class Deployment extends AbstractDeployment
      * Deploys the datasource found for the passed app node in the app's webapp folder.
      *
      * @param \TechDivision\ApplicationServer\Api\Node\AppNode $appNode
-     * @param string $folder
+     * @param \SplFileInfo $folder
      *            Folder to check for datasources
      * @return void
      */
