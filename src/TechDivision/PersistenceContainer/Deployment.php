@@ -3,24 +3,30 @@
 /**
  * TechDivision\PersistenceContainer\Deployment
  *
- * NOTICE OF LICENSE
+ * PHP version 5
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
+ * @category  Appserver
+ * @package   TechDivision_ApplicationServer
+ * @author    Tim Wagner <tw@techdivision.com>
+ * @copyright 2013 TechDivision GmbH <info@techdivision.com>
+ * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @link      http://www.appserver.io
  */
+
 namespace TechDivision\PersistenceContainer;
 
 use TechDivision\ApplicationServer\AbstractDeployment;
 use TechDivision\ApplicationServer\Configuration;
 
 /**
+ * Class Deployment
  *
- * @package TechDivision\PersistenceContainer
- * @copyright Copyright (c) 2010 <info@techdivision.com> - TechDivision GmbH
- * @license http://opensource.org/licenses/osl-3.0.php
- *          Open Software License (OSL 3.0)
- * @author Tim Wagner <tw@techdivision.com>
+ * @category  Appserver
+ * @package   TechDivision_ApplicationServer
+ * @author    Tim Wagner <tw@techdivision.com>
+ * @copyright 2013 TechDivision GmbH <info@techdivision.com>
+ * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @link      http://www.appserver.io
  */
 class Deployment extends AbstractDeployment
 {
@@ -32,7 +38,6 @@ class Deployment extends AbstractDeployment
      */
     public function deploy()
     {
-
         // gather all the deployed web applications
         foreach (new \FilesystemIterator($this->getBaseDirectory($this->getAppBase())) as $folder) {
 
@@ -62,9 +67,9 @@ class Deployment extends AbstractDeployment
     /**
      * Deploys the datasource found for the passed app node in the app's webapp folder.
      *
-     * @param \TechDivision\ApplicationServer\Api\Node\AppNode $appNode
-     * @param \SplFileInfo $folder
-     *            Folder to check for datasources
+     * @param \TechDivision\ApplicationServer\Api\Node\AppNode $appNode A app node
+     * @param \SplFileInfo                                     $folder  Folder to check for datasources
+     *
      * @return void
      */
     public function deployDatasource($appNode, $folder)

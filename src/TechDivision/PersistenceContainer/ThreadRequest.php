@@ -1,14 +1,17 @@
 <?php
-
 /**
  * TechDivision\PersistenceContainer\ThreadRequest
  *
- * NOTICE OF LICENSE
+ * PHP version 5
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
+ * @category  Appserver
+ * @package   TechDivision_ApplicationServer
+ * @author    Johann Zelger <jz@techdivision.com>
+ * @copyright 2013 TechDivision GmbH <info@techdivision.com>
+ * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @link      http://www.appserver.io
  */
+
 namespace TechDivision\PersistenceContainer;
 
 use TechDivision\ApplicationServer\AbstractContextThread;
@@ -19,11 +22,12 @@ use TechDivision\Socket\Client;
 /**
  * The thread implementation that handles the request.
  *
- * @package TechDivision\PersistenceContainer
- * @copyright Copyright (c) 2013 <info@techdivision.com> - TechDivision GmbH
- * @license http://opensource.org/licenses/osl-3.0.php
- *          Open Software License (OSL 3.0)
- * @author Johann Zelger <jz@techdivision.com>
+ * @category  Appserver
+ * @package   TechDivision_ApplicationServer
+ * @author    Johann Zelger <jz@techdivision.com>
+ * @copyright 2013 TechDivision GmbH <info@techdivision.com>
+ * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @link      http://www.appserver.io
  */
 class ThreadRequest extends AbstractContextThread
 {
@@ -45,10 +49,9 @@ class ThreadRequest extends AbstractContextThread
     /**
      * Initializes the request with the client socket.
      *
-     * @param ContainerInterface $container
-     *            The ServletContainer
-     * @param resource $resource
-     *            The client socket instance
+     * @param ContainerInterface $container The ServletContainer
+     * @param resource           $resource  The client socket instance
+     *
      * @return void
      */
     public function init(ContainerInterface $container, $resource)
@@ -58,12 +61,12 @@ class ThreadRequest extends AbstractContextThread
     }
 
     /**
+     * The thread implementation main method which will be called from run in abstractness
      *
-     * @see AbstractThread::main()
+     * @return void
      */
     public function main()
     {
-        
         // initialize a new client socket
         $client = $this->newInstance('TechDivision\Socket\Client');
         
@@ -158,8 +161,8 @@ class ThreadRequest extends AbstractContextThread
     /**
      * Tries to find and return the application for the passed class name.
      *
-     * @param string $className
-     *            The name of the class to find and return the application instance
+     * @param string $className The name of the class to find and return the application instance
+     *
      * @return \TechDivision\PersistenceContainer\Application The application instance
      * @throws \Exception Is thrown if no application can be found for the passed class name
      */
