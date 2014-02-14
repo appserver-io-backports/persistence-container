@@ -1,14 +1,17 @@
 <?php
-
 /**
  * TechDivision\PersistenceContainer\Application
  *
- * NOTICE OF LICENSE
+ * PHP version 5
  *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
+ * @category  Appserver
+ * @package   TechDivision_ApplicationServer
+ * @author    Tim Wagner <tw@techdivision.com>
+ * @copyright 2013 TechDivision GmbH <info@techdivision.com>
+ * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @link      http://www.appserver.io
  */
+
 namespace TechDivision\PersistenceContainer;
 
 use TechDivision\ApplicationServer\AbstractApplication;
@@ -17,11 +20,12 @@ use TechDivision\ApplicationServer\AbstractApplication;
  * The application instance holds all information about the deployed application
  * and provides a reference to the entity manager and the initial context.
  *
- * @package TechDivision\PersistenceContainer
- * @copyright Copyright (c) 2010 <info@techdivision.com> - TechDivision GmbH
- * @license http://opensource.org/licenses/osl-3.0.php
- *          Open Software License (OSL 3.0)
- * @author Tim Wagner <tw@techdivision.com>
+ * @category  Appserver
+ * @package   TechDivision_ApplicationServer
+ * @author    Tim Wagner <tw@techdivision.com>
+ * @copyright 2013 TechDivision GmbH <info@techdivision.com>
+ * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @link      http://www.appserver.io
  */
 class Application extends AbstractApplication
 {
@@ -45,11 +49,12 @@ class Application extends AbstractApplication
     }
 
     /**
+     * Look's up the classname
      *
-     * @param type $className
-     * @param type $sessionId
-     * @internal param \TechDivision\PersistenceContainer\type $args
-     * @return type
+     * @param string $className The classname
+     * @param string $sessionId The session id
+     *
+     * @return mixed The instantiated class
      */
     public function lookup($className, $sessionId)
     {
