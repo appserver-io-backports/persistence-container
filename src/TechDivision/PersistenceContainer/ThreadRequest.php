@@ -33,14 +33,14 @@ class ThreadRequest extends AbstractContextThread
 {
 
     /**
-     * Holds the container instance
+     * Holds the container instance.
      *
-     * @var ContainerInterface
+     * @var \TechDivision\PersistenceContainer\Container
      */
     public $container;
 
     /**
-     * Holds the main socket resource
+     * Holds the main socket resource.
      *
      * @var resource
      */
@@ -49,8 +49,8 @@ class ThreadRequest extends AbstractContextThread
     /**
      * Initializes the request with the client socket.
      *
-     * @param ContainerInterface $container The ServletContainer
-     * @param resource           $resource  The client socket instance
+     * @param \TechDivision\PersistenceContainer\Container $container The ServletContainer
+     * @param resource                                     $resource  The client socket instance
      *
      * @return void
      */
@@ -141,7 +141,7 @@ class ThreadRequest extends AbstractContextThread
     /**
      * Returns the container instance.
      *
-     * @return \TechDivision\ServletContainer\Container The container instance
+     * @return \TechDivision\PersistenceContainer\Container The container instance
      */
     public function getContainer()
     {
