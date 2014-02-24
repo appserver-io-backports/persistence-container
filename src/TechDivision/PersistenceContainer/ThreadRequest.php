@@ -17,6 +17,7 @@ namespace TechDivision\PersistenceContainer;
 use TechDivision\ApplicationServer\AbstractContextThread;
 use TechDivision\ApplicationServer\Interfaces\ContainerInterface;
 use TechDivision\PersistenceContainerClient\Interfaces\RemoteMethod;
+use TechDivision\ApplicationServer\Api\AppService;
 use TechDivision\Socket\Client;
 
 /**
@@ -69,72 +70,75 @@ class ThreadRequest extends AbstractContextThread
     {
         // initialize a new client socket
         $client = $this->newInstance('TechDivision\Socket\Client');
-        
+
         // set the client socket resource
         $client->setResource($this->resource);
-        
+
         // read a line from the client
         $line = $client->readLine();
-        
+
         // unserialize the passed remote method
         $remoteMethod = unserialize($line);
-        
+
         // check if a remote method has been passed
         if ($remoteMethod instanceof RemoteMethod) {
-            
+
             try {
-                
+
                 // load class name and session ID from remote method
                 $className = $remoteMethod->getClassName();
                 $sessionId = $remoteMethod->getSessionId();
-                
-                // load the referenced application from the server
-                $application = $this->findApplication($className);
-                
+
+                // Find the application for the given name coming from remote
+                $application = $this->findApplication($remoteMethod->getAppName());
+
                 // create initial context and lookup session bean
                 $instance = $application->lookup($className, $sessionId);
-                
+
                 // prepare method name and parameters and invoke method
                 $methodName = $remoteMethod->getMethodName();
                 $parameters = $remoteMethod->getParameters();
-                
+
                 // invoke the remote method call on the local instance
-                $response = call_user_func_array(array(
-                    $instance,
-                    $methodName
-                ), $parameters);
-                
+                $response = call_user_func_array(
+                    array(
+                        $instance,
+                        $methodName
+                    ),
+                    $parameters
+                );
+
             } catch (\Exception $e) {
                 $response = $e;
             }
-            
+
             try {
-                
+
                 // send the data back to the client
                 $client->sendLine(serialize($response));
-                
+
             } catch (\Exception $e) {
                 $this->getInitialContext()
                     ->getSystemLogger()
                     ->error($e->__toString());
             }
-            
+
         } else {
             $this->getInitalContext()
                 ->getSystemLogger()
                 ->critical('Invalid remote method call');
         }
-        
+
         // try to shutdown client socket
         try {
-            
+
             $client->shutdown();
             $client->close();
         } catch (\Exception $e) {
-            
+
             $client->close();
         }
-        
+
         unset($client);
     }
 
@@ -159,26 +163,27 @@ class ThreadRequest extends AbstractContextThread
     }
 
     /**
-     * Tries to find and return the application for the passed class name.
+     * Tries to find and return the application for the passed application name.
      *
-     * @param string $className The name of the class to find and return the application instance
+     * @param string $appName The name of the application to find and return the application instance
      *
      * @return \TechDivision\PersistenceContainer\Application The application instance
      * @throws \Exception Is thrown if no application can be found for the passed class name
      */
-    public function findApplication($className)
+    public function findApplication($appName)
     {
-        
-        // iterate over all classes and check if the application name contains the class name
+        // iterate over all applications and check if the application name contains the app name
+        $foundApplication = null;
         foreach ($this->getApplications() as $name => $application) {
-            
-            if (strpos(strtolower($className), $name) !== false) {
-                // if yes, return the application instance
+
+            // Do we have an application like this?
+            if ($name === $appName) {
+
                 return $application;
             }
         }
-        
+
         // if not throw an exception
-        throw new \Exception("Can\'t find application for '$className'");
+        throw new \Exception("Can\'t find application for '$appName'");
     }
 }
