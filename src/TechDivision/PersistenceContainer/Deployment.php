@@ -47,16 +47,23 @@ class Deployment extends AbstractDeployment
                 // initialize the application name
                 $name = basename($folder);
 
+                // Lets get the datasources found during deployment
+                $datasources = $this->collectDatasources($this->getContainerNode()->getName(), $folder);
+
                 // initialize the application instance
-                $application = $this->newInstance('\TechDivision\PersistenceContainer\Application', array(
-                    $this->getInitialContext(),
-                    $this->getContainerNode(),
-                    $name
-                ));
+                $application = $this->newInstance(
+                    '\TechDivision\PersistenceContainer\Application',
+                    array(
+                        $this->getInitialContext(),
+                        $this->getContainerNode(),
+                        $name,
+                        $datasources
+                    )
+                );
 
                 // add the application and deploy the datasource if available
                 $this->addApplication($application);
-                $this->deployDatasource($application->getAppNode(), $folder);
+                $this->deployDatasources($datasources);
             }
         }
 
@@ -65,22 +72,52 @@ class Deployment extends AbstractDeployment
     }
 
     /**
-     * Deploys the datasource found for the passed app node in the app's webapp folder.
+     * Deploys the passed datasources.
      *
-     * @param \TechDivision\ApplicationServer\Api\Node\AppNode $appNode A app node
-     * @param \SplFileInfo                                     $folder  Folder to check for datasources
+     * @param array $datasources The datasources to deploy
      *
      * @return void
      */
-    public function deployDatasource($appNode, $folder)
+    public function deployDatasources(array $datasources)
     {
+        // We need a datasource service to attach the sources
+        $datasourceService = $this->newService('\TechDivision\ApplicationServer\Api\DatasourceService');
+
+        // Now attach them to our system configuration
+        foreach ($datasources as $datasourceNode) {
+
+            $datasourceService->attachDatasource($datasourceNode);
+        }
+    }
+
+    /**
+     * Collects all the datasources found within the specified folder and links them to the container.
+     *
+     * @param string       $containerName The name of the container the datasource is used in
+     * @param \SplFileInfo $folder        Folder to check for datasources
+     *
+     * @return array
+     */
+    public function collectDatasources($containerName, $folder)
+    {
+        // If we wont find anything the return an empty array
+        $datasources = array();
+
         if (is_dir($folder . DIRECTORY_SEPARATOR . 'META-INF')) {
-            if (file_exists($ds = $folder . DIRECTORY_SEPARATOR . 'META-INF' . DIRECTORY_SEPARATOR . 'appserver-ds.xml')) {
+            if (file_exists(
+                $ds = $folder . DIRECTORY_SEPARATOR . 'META-INF' . DIRECTORY_SEPARATOR . 'appserver-ds.xml'
+            )
+            ) {
+                // Lets instantiate all the datasources we can find and collect them
                 $datasourceService = $this->newService('TechDivision\ApplicationServer\Api\DatasourceService');
-                foreach ($datasourceService->initFromFile($ds) as $datasourceNode) {
-                    $datasourceService->attachDatasource($datasourceNode);
+
+                foreach ($datasourceService->initFromFile($ds, $containerName) as $datasourceNode) {
+
+                    $datasources[$datasourceNode->getUuid()] = $datasourceNode;
                 }
             }
         }
+
+        return $datasources;
     }
 }
