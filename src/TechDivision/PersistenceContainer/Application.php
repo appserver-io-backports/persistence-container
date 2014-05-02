@@ -43,23 +43,8 @@ class Application extends AbstractApplication
         set_include_path(get_include_path() . PATH_SEPARATOR . $this->getWebappPath());
         set_include_path(get_include_path() . PATH_SEPARATOR . $this->getWebappPath() . DIRECTORY_SEPARATOR . 'META-INF' . DIRECTORY_SEPARATOR . 'classes');
         set_include_path(get_include_path() . PATH_SEPARATOR . $this->getWebappPath() . DIRECTORY_SEPARATOR . 'META-INF' . DIRECTORY_SEPARATOR . 'lib');
-
+        
         // return the instance itself
         return $this;
-    }
-
-    /**
-     * Look's up the classname
-     *
-     * @param string $className The classname
-     * @param string $sessionId The session id
-     *
-     * @return mixed The instantiated class
-     */
-    public function lookup($className, $sessionId)
-    {
-        return $this->initialContext->lookup($className, $sessionId, array(
-            $this
-        ));
     }
 }

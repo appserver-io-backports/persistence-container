@@ -6,7 +6,7 @@
  * PHP version 5
  *
  * @category  Appserver
- * @package   TechDivision_ApplicationServer
+ * @package   TechDivision_PersistenceContainer
  * @author    Tim Wagner <tw@techdivision.com>
  * @copyright 2013 TechDivision GmbH <info@techdivision.com>
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
@@ -16,13 +16,12 @@
 namespace TechDivision\PersistenceContainer;
 
 use TechDivision\ApplicationServer\AbstractDeployment;
-use TechDivision\ApplicationServer\Configuration;
 
 /**
  * Class Deployment
  *
  * @category  Appserver
- * @package   TechDivision_ApplicationServer
+ * @package   TechDivision_PersistenceContainer
  * @author    Tim Wagner <tw@techdivision.com>
  * @copyright 2013 TechDivision GmbH <info@techdivision.com>
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
@@ -30,7 +29,7 @@ use TechDivision\ApplicationServer\Configuration;
  */
 class Deployment extends AbstractDeployment
 {
-
+    
     /**
      * Returns an array with available applications.
      *
@@ -38,11 +37,12 @@ class Deployment extends AbstractDeployment
      */
     public function deploy()
     {
+    
         // gather all the deployed web applications
-        foreach (new \FilesystemIterator($this->getBaseDirectory($this->getAppBase())) as $folder) {
-
-            // check if file or sub directory has been found
-            if (is_dir($folder)) {
+        foreach (new \FilesystemIterator($this->getWebappPath()) as $folder) {
+    
+            // check if file or subdirectory has been found
+            if ($folder->isDir() === true) {
 
                 // initialize the application name
                 $name = basename($folder);
@@ -66,8 +66,8 @@ class Deployment extends AbstractDeployment
                 $this->deployDatasources($datasources);
             }
         }
-
-        // return the server instance
+    
+        // return initialized applications
         return $this;
     }
 
@@ -80,12 +80,11 @@ class Deployment extends AbstractDeployment
      */
     public function deployDatasources(array $datasources)
     {
-        // We need a datasource service to attach the sources
+        // we need a datasource service to attach the sources
         $datasourceService = $this->newService('\TechDivision\ApplicationServer\Api\DatasourceService');
 
-        // Now attach them to our system configuration
+        // now attach them to our system configuration
         foreach ($datasources as $datasourceNode) {
-
             $datasourceService->attachDatasource($datasourceNode);
         }
     }
@@ -100,24 +99,42 @@ class Deployment extends AbstractDeployment
      */
     public function collectDatasources($containerName, $folder)
     {
-        // If we wont find anything the return an empty array
+        // if we wont find anything the return an empty array
         $datasources = array();
 
         if (is_dir($folder . DIRECTORY_SEPARATOR . 'META-INF')) {
-            if (file_exists(
-                $ds = $folder . DIRECTORY_SEPARATOR . 'META-INF' . DIRECTORY_SEPARATOR . 'appserver-ds.xml'
-            )
-            ) {
-                // Lets instantiate all the datasources we can find and collect them
+            if (file_exists($ds = $folder . DIRECTORY_SEPARATOR . 'META-INF' . DIRECTORY_SEPARATOR . 'appserver-ds.xml')) {
+                
+                // lets instantiate all the datasources we can find and collect them
                 $datasourceService = $this->newService('TechDivision\ApplicationServer\Api\DatasourceService');
 
                 foreach ($datasourceService->initFromFile($ds, $containerName) as $datasourceNode) {
-
                     $datasources[$datasourceNode->getUuid()] = $datasourceNode;
                 }
             }
         }
 
         return $datasources;
+    }
+    
+    /**
+     * Returns the authentication manager.
+     *
+     * @return \TechDivision\ServletEngine\Authentication\AuthenticationManager
+     */
+    protected function getAuthenticationManager()
+    {
+        return new StandardAuthenticationManager();
+    }
+    
+    /**
+     * (non-PHPdoc)
+     *
+     * @return string The path to the webapps folder
+     * @see ApplicationService::getWebappPath()
+     */
+    public function getWebappPath()
+    {
+        return $this->getBaseDirectory($this->getAppBase());
     }
 }
