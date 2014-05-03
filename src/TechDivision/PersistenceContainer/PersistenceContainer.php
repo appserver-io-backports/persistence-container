@@ -152,9 +152,54 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
         }
     }
     
-    public function attach($instance)
+    /**
+     * Attaches the passed bean, depending on it's type to the container.
+     * 
+     * @param object $instance  The bean instance to attach
+     * @param string $sessionId The session-ID when we have stateful session bean
+     * 
+     * @return void
+     * @throws \Exception Is thrown if we have a stateful session bean, but no session-ID passed
+     */
+    public function attach($instance, $sessionId = null)
     {
-        error_log("We now attach the session bean " . get_class($instance));
+
+        // we need a reflection object to read the annotations
+        $reflectionObject = new \ReflectionObject($instance);
+        
+        // check what kind of bean we have
+        switch ($this->getBeanAnnotation($reflectionObject)) {
+
+            case 'stateful': // @Stateful
+
+                // check if we've a session-ID available
+                if ($sessionId == null) {
+                    throw new \Exception("Can't find a session-ID to attach stateful session bean");
+                }
+                
+                // load the session's from the initial context
+                $session = $this->getAttribute($sessionId);
+
+                // if an instance exists, load and return it
+                if (is_array($session) === false) {
+                    $session = array();
+                }
+                
+                // store the bean back to the container
+                $session[$reflectionObject->getName()] = $instance;
+                $this->setAttribute($sessionId, $session);
+                break;
+
+            case 'singleton': // @Singleton
+                
+                // replace any existing bean in the container
+                $this->setAttribute($reflectionObject->getName(), $instance);
+                break;
+
+            default: // @Stateless
+
+                // we do nothing here, because we have not state
+        }
     }
 
     /**
@@ -188,15 +233,10 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
                     if (array_key_exists($className, $session)) {
                         return $session[$className];
                     }
-                } else {
-                    $session = array();
                 }
 
                 // if not, initialize a new instance, add it to the container and return it
-                $instance = $this->newInstance($className, $args);
-                $session[$className] = $instance;
-                $this->setAttribute($sessionId, $session);
-                return $instance;
+                return $this->newInstance($className, $args);
 
             case 'singleton':
 
@@ -206,9 +246,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
                 }
 
                 // if not create a new instance and return it
-                $instance = $this->newInstance($className, $args);
-                $this->setAttribute($className, $instance);
-                return $instance;
+                return $this->newInstance($className, $args);
 
             default: // @Stateless
 
@@ -228,7 +266,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
      * @throws \Exception Is thrown if the class has NO bean annotation
      * @return string The found bean annotation
      */
-    public function getBeanAnnotation($reflectionClass)
+    public function getBeanAnnotation(\ReflectionClass $reflectionClass)
     {
 
         // load the class name to get the annotation for
@@ -246,12 +284,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
 
         // initialize the annotation tokenizer
         $tokenizer = new Tokenizer();
-        $tokenizer->ignore(array(
-            'author',
-            'package',
-            'license',
-            'copyright'
-        ));
+        $tokenizer->ignore(array('author', 'package', 'license', 'copyright'));
         $aliases = array();
 
         // parse the doc block
@@ -261,11 +294,8 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
         $tokens = new Tokens($parsed);
         $toArray = new ToArray();
 
-        $beanAnnotations = array(
-            'singleton',
-            'statefull',
-            'stateless'
-        );
+        // defines the available bean annotations
+        $beanAnnotations = array('singleton', 'statefull', 'stateless');
         
         // iterate over the tokens
         foreach ($toArray->convert($tokens) as $token) {
@@ -307,21 +337,27 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
         return $this->getInitialContext()->newReflectionClass($className);
     }
     
-    public function removeAttribute($key)
+    /**
+     * Registers the value with the passed key in the container.
+     * 
+     * @param string $key   The key to register the value with
+     * @param object $value The value to register
+     * 
+     * @return void
+     */
+    protected function setAttribute($key, $value)
     {
-        $this->lock();
-        unset($this[$key]);
-        $this->unlock();
-    }
-    
-    public function setAttribute($key, $value)
-    {
-        $this->lock();
         $this[$key] = $value;
-        $this->unlock();
     }
     
-    public function getAttribute($key)
+    /**
+     * Returns the attribute with the passed key from the container.
+     * 
+     * @param string $key The key the requested value is registered with
+     * 
+     * @return object The requested value
+     */
+    protected function getAttribute($key)
     {
         return $this[$key];
     }
