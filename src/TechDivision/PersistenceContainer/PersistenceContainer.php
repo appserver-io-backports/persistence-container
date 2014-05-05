@@ -164,41 +164,62 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
     public function attach($instance, $sessionId = null)
     {
 
-        // we need a reflection object to read the annotations
-        $reflectionObject = new \ReflectionObject($instance);
-        
-        // check what kind of bean we have
-        switch ($this->getBeanAnnotation($reflectionObject)) {
+        try {
 
-            case 'stateful': // @Stateful
-
-                // check if we've a session-ID available
-                if ($sessionId == null) {
-                    throw new \Exception("Can't find a session-ID to attach stateful session bean");
-                }
-                
-                // load the session's from the initial context
-                $session = $this->getAttribute($sessionId);
-
-                // if an instance exists, load and return it
-                if (is_array($session) === false) {
-                    $session = array();
-                }
-                
-                // store the bean back to the container
-                $session[$reflectionObject->getName()] = $instance;
-                $this->setAttribute($sessionId, $session);
-                break;
-
-            case 'singleton': // @Singleton
-                
-                // replace any existing bean in the container
-                $this->setAttribute($reflectionObject->getName(), $instance);
-                break;
-
-            default: // @Stateless
-
-                // we do nothing here, because we have not state
+            // we need a reflection object to read the annotations
+            $reflectionObject = new \ReflectionObject($instance);
+            
+            // check what kind of bean we have
+            switch ($this->getBeanAnnotation($reflectionObject)) {
+            
+                case 'stateful': // @Stateful
+            
+                    // lock the container
+                    $this->lock();
+            
+                    // check if we've a session-ID available
+                    if ($sessionId == null) {
+                        throw new \Exception("Can't find a session-ID to attach stateful session bean");
+                    }
+            
+                    // load the session's from the initial context
+                    $session = $this->getAttribute($sessionId);
+            
+                    // if an instance exists, load and return it
+                    if (is_array($session) === false) {
+                        $session = array();
+                    }
+            
+                    // store the bean back to the container
+                    $session[$reflectionObject->getName()] = $instance;
+                    $this->setAttribute($sessionId, $session);
+            
+                    // unlock the container
+                    $this->unlock();
+            
+                    break;
+            
+                case 'singleton': // @Singleton
+            
+                    // lock the container
+                    $this->lock();
+            
+                    // replace any existing bean in the container
+                    $this->setAttribute($reflectionObject->getName(), $instance);
+            
+                    // unlock the container
+                    $this->unlock();
+            
+                    break;
+            
+                default: // @Stateless
+            
+                    // we do nothing here, because we have not state
+            }
+                        
+        } catch (\Exception $e) {
+            $this->unlock();
+            throw $e;
         }
     }
 
@@ -217,7 +238,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
      */
     public function lookup($className, $sessionId, array $args = array())
     {
-
+        
         // get the reflection class for the passed class name
         $reflectionClass = $this->newReflectionClass($className);
 
@@ -254,7 +275,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
         }
 
         // if the class is no session bean, throw an exception
-        throw new \Exception("Can\'t find session bean with class name '$className'");
+        throw new \Exception(sprintf("Can\'t find session bean with class name '%s'", $className));
     }
 
     /**
@@ -295,7 +316,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
         $toArray = new ToArray();
 
         // defines the available bean annotations
-        $beanAnnotations = array('singleton', 'statefull', 'stateless');
+        $beanAnnotations = array('singleton', 'stateful', 'stateless');
         
         // iterate over the tokens
         foreach ($toArray->convert($tokens) as $token) {
