@@ -13,7 +13,6 @@
     "require": {
         "php" : ">=5.4.0",
         "techdivision/appserver": "dev-master",
-        "techdivision/persistencecontainerclient": "dev-master",
         "techdivision/persistencecontainerprotocol": "dev-master"
     },
     "autoload": {
