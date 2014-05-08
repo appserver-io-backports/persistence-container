@@ -27,6 +27,7 @@ use Herrera\Annotations\Convert\ToArray;
 use TechDivision\MessageQueueProtocol\Message;
 use TechDivision\ApplicationServer\Interfaces\ContainerInterface;
 use TechDivision\ApplicationServer\ServerNodeConfiguration;
+use TechDivision\PersistenceContainer\Utils\BeanUtils;
 
 /**
  * Class Container
@@ -106,7 +107,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
      */
     public function updateMonitor(Message $message)
     {
-        error_log("Update message monitor with message: $message");
+        error_log('Update message monitor for message: ' . spl_object_hash($message));
     }
 
     /**
@@ -182,9 +183,9 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
             $reflectionObject = new \ReflectionObject($instance);
 
             // check what kind of bean we have
-            switch ($this->getBeanAnnotation($reflectionObject)) {
+            switch ($beanType = $this->getBeanAnnotation($reflectionObject)) {
 
-                case 'stateful': // @Stateful
+                case BeanUtils::STATEFUL: // @Stateful
 
                     // lock the container
                     $this->lock();
@@ -211,7 +212,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
 
                     break;
 
-                case 'singleton': // @Singleton
+                case BeanUtils::SINGLETON: // @Singleton
 
                     // lock the container
                     $this->lock();
@@ -224,9 +225,16 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
 
                     break;
 
-                default: // @Stateless or @MessageDriven
+                case BeanUtils::STATELESS: // @Stateless
+                case BeanUtils::MESSAGEDRIVEN: // @MessageDriven
 
                     // we do nothing here, because we have not state
+                	break;
+
+                default: // this should never happen
+
+                	throw new InvalidBeanTypeException("Try to attach invalid bean type '$beanType'");
+                	break;
             }
 
         } catch (\Exception $e) {
@@ -254,9 +262,10 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
         // get the reflection class for the passed class name
         $reflectionClass = $this->newReflectionClass($className);
 
-        switch ($this->getBeanAnnotation($reflectionClass)) {
+        // check what kind of bean we have
+        switch ($beanType = $this->getBeanAnnotation($reflectionClass)) {
 
-            case 'stateful':
+            case BeanUtils::STATEFUL: // @Stateful
 
                 // load the session's from the initial context
                 $session = $this->getAttribute($sessionId);
@@ -271,7 +280,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
                 // if not, initialize a new instance, add it to the container and return it
                 return $this->newInstance($className, $args);
 
-            case 'singleton':
+            case BeanUtils::SINGLETON: // @Singleton
 
                 // check if an instance is available
                 if ($this->getAttribute($className)) {
@@ -281,13 +290,17 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
                 // if not create a new instance and return it
                 return $this->newInstance($className, $args);
 
-            default: // @Stateless or @MessageDriven
+            case BeanUtils::STATELESS: // @Stateless
+            case BeanUtils::MESSAGEDRIVEN: // @MessageDriven
 
-                return $this->newInstance($className, $args);
+            	return $this->newInstance($className, $args);
+                break;
+
+            default: // this should never happen
+
+                throw new InvalidBeanTypeException("Try to lookup invalid bean type '$beanType'");
+                break;
         }
-
-        // if the class is no session bean, throw an exception
-        throw new \Exception(sprintf("Can\'t find session bean with class name '%s'", $className));
     }
 
     /**
@@ -328,7 +341,12 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
         $toArray = new ToArray();
 
         // defines the available bean annotations
-        $beanAnnotations = array('singleton', 'stateful', 'stateless', 'messagedriven');
+        $beanAnnotations = array(
+            BeanUtils::SINGLETON,
+            BeanUtils::STATEFUL,
+        	BeanUtils::STATELESS,
+        	BeanUtils::MESSAGEDRIVEN
+        );
 
         // iterate over the tokens
         foreach ($toArray->convert($tokens) as $token) {
