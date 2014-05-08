@@ -14,6 +14,9 @@
 
 namespace TechDivision\PersistenceContainer;
 
+
+use TechDivision\MessageQueue\QueueManager;
+use TechDivision\MessageQueueProtocol\Queue;
 use TechDivision\ApplicationServer\AbstractApplication;
 
 /**
@@ -31,10 +34,17 @@ class Application extends AbstractApplication
 {
 
     /**
+     * The queue manager.
+     *
+     * @var \TechDivision\MessageQueue\QueueManager
+     */
+    protected $queueManager;
+
+    /**
      * Has been automatically invoked by the container after the application
      * instance has been created.
      *
-     * @return \TechDivision\PersistenceContainer\Application The connected application
+     * @return void
      */
     public function connect()
     {
@@ -44,22 +54,65 @@ class Application extends AbstractApplication
         set_include_path(get_include_path() . PATH_SEPARATOR . $this->getWebappPath() . DIRECTORY_SEPARATOR . 'META-INF' . DIRECTORY_SEPARATOR . 'classes');
         set_include_path(get_include_path() . PATH_SEPARATOR . $this->getWebappPath() . DIRECTORY_SEPARATOR . 'META-INF' . DIRECTORY_SEPARATOR . 'lib');
 
-        // return the instance itself
-        return $this;
+        // initialize the queue manager instance
+        $queueManager = $this->newInstance('TechDivision\MessageQueue\QueueManager');
+        $queueManager->setWebappPath($this->getWebappPath());
+        $queueManager->initialize();
+
+        // set the queue manager
+        $this->setQueueManager($queueManager);
     }
 
     /**
-     * Look's up the classname
+     * Sets the applications queue manager instance.
      *
-     * @param string $className The classname
-     * @param string $sessionId The session id
+     * @param \TechDivision\MessageQueue\QueueManager $queueManager The queue manager instance
      *
-     * @return mixed The instantiated class
+     * @return void
      */
-    public function lookup($className, $sessionId)
+    public function setQueueManager(QueueManager $queueManager)
     {
-        return $this->initialContext->lookup($className, $sessionId, array(
-            $this
-        ));
+        $this->queueManager = $queueManager;
+    }
+
+    /**
+     * Return the queue manager instance.
+     *
+     * @return \TechDivision\MessageQueue\QueueManager The queue manager instance
+     */
+    public function getQueueManager()
+    {
+        return $this->queueManager;
+    }
+
+    /**
+     * Returns TRUE if the application is related with the
+     * passed queue instance.
+     *
+     * @param \TechDivision\MessageQueueClient\Queue $queue The queue the application has to be related to
+     *
+     * @return boolean TRUE if the application is related, else FALSE
+     */
+    public function hasQueue($queue)
+    {
+        return array_key_exists($queue->getName(), $this->getQueueManager()->getQueues());
+    }
+
+    /**
+     * Returns the receiver for the passed queue.
+     *
+     * @param string $queueName The queue name to return the queue for
+     *
+     * @return \TechDivision\MessageQueueClient\Interfaces\MessageReceiver The receiver for the passed queue
+     */
+    public function locate($queueName)
+    {
+        $queueLocator = $this->newInstance(
+            'TechDivision\MessageQueue\Service\Locator\QueueLocator',
+            array(
+                $this->getQueueManager()
+            )
+        );
+        return $queueLocator->locate($queueName);
     }
 }
