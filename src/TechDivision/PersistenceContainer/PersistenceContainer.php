@@ -24,6 +24,7 @@ namespace TechDivision\PersistenceContainer;
 use Herrera\Annotations\Tokens;
 use Herrera\Annotations\Tokenizer;
 use Herrera\Annotations\Convert\ToArray;
+use TechDivision\MessageQueueProtocol\Message;
 use TechDivision\ApplicationServer\Interfaces\ContainerInterface;
 use TechDivision\ApplicationServer\ServerNodeConfiguration;
 
@@ -39,7 +40,7 @@ use TechDivision\ApplicationServer\ServerNodeConfiguration;
  */
 class PersistenceContainer extends \Stackable implements ContainerInterface
 {
-    
+
     /**
      * Initializes the container with the initial context, the unique container ID
      * and the deployed applications.
@@ -98,6 +99,17 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
     }
 
     /**
+     * Updates the message monitor.
+     *
+     * @param Message $message The message to update the monitor for
+     * @return void
+     */
+    public function updateMonitor(Message $message)
+    {
+        error_log("Update message monitor with message: $message");
+    }
+
+    /**
      * Run the containers logic
      *
      * @return void
@@ -151,13 +163,13 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
             $server->join();
         }
     }
-    
+
     /**
      * Attaches the passed bean, depending on it's type to the container.
-     * 
+     *
      * @param object $instance  The bean instance to attach
      * @param string $sessionId The session-ID when we have stateful session bean
-     * 
+     *
      * @return void
      * @throws \Exception Is thrown if we have a stateful session bean, but no session-ID passed
      */
@@ -168,55 +180,55 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
 
             // we need a reflection object to read the annotations
             $reflectionObject = new \ReflectionObject($instance);
-            
+
             // check what kind of bean we have
             switch ($this->getBeanAnnotation($reflectionObject)) {
-            
+
                 case 'stateful': // @Stateful
-            
+
                     // lock the container
                     $this->lock();
-            
+
                     // check if we've a session-ID available
                     if ($sessionId == null) {
                         throw new \Exception("Can't find a session-ID to attach stateful session bean");
                     }
-            
+
                     // load the session's from the initial context
                     $session = $this->getAttribute($sessionId);
-            
+
                     // if an instance exists, load and return it
                     if (is_array($session) === false) {
                         $session = array();
                     }
-            
+
                     // store the bean back to the container
                     $session[$reflectionObject->getName()] = $instance;
                     $this->setAttribute($sessionId, $session);
-            
+
                     // unlock the container
                     $this->unlock();
-            
+
                     break;
-            
+
                 case 'singleton': // @Singleton
-            
+
                     // lock the container
                     $this->lock();
-            
+
                     // replace any existing bean in the container
                     $this->setAttribute($reflectionObject->getName(), $instance);
-            
+
                     // unlock the container
                     $this->unlock();
-            
+
                     break;
-            
-                default: // @Stateless
-            
+
+                default: // @Stateless or @MessageDriven
+
                     // we do nothing here, because we have not state
             }
-                        
+
         } catch (\Exception $e) {
             $this->unlock();
             throw $e;
@@ -238,7 +250,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
      */
     public function lookup($className, $sessionId, array $args = array())
     {
-        
+
         // get the reflection class for the passed class name
         $reflectionClass = $this->newReflectionClass($className);
 
@@ -269,7 +281,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
                 // if not create a new instance and return it
                 return $this->newInstance($className, $args);
 
-            default: // @Stateless
+            default: // @Stateless or @MessageDriven
 
                 return $this->newInstance($className, $args);
         }
@@ -316,8 +328,8 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
         $toArray = new ToArray();
 
         // defines the available bean annotations
-        $beanAnnotations = array('singleton', 'stateful', 'stateless');
-        
+        $beanAnnotations = array('singleton', 'stateful', 'stateless', 'messagedriven');
+
         // iterate over the tokens
         foreach ($toArray->convert($tokens) as $token) {
             $tokeName = strtolower($token->name);
@@ -331,7 +343,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
         // throw an exception if the requested class
         throw new \Exception(sprintf("Missing enterprise bean annotation for %s", $reflectionClass->getName()));
     }
-    
+
     /**
      * Returns a new instance of the passed class name.
      *
@@ -339,13 +351,12 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
      * @param array  $args      Arguments to pass to the constructor of the instance
      *
      * @return object The instance itself
-     * @todo Has to be refactored to avoid registering autoloader on every call
      */
     public function newInstance($className, array $args = array())
     {
         return $this->getInitialContext()->newInstance($className, $args);
-    }    
-    
+    }
+
     /**
      * Returns a reflection class intance for the passed class name.
      *
@@ -357,25 +368,25 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
     {
         return $this->getInitialContext()->newReflectionClass($className);
     }
-    
+
     /**
      * Registers the value with the passed key in the container.
-     * 
+     *
      * @param string $key   The key to register the value with
      * @param object $value The value to register
-     * 
+     *
      * @return void
      */
     protected function setAttribute($key, $value)
     {
         $this[$key] = $value;
     }
-    
+
     /**
      * Returns the attribute with the passed key from the container.
-     * 
+     *
      * @param string $key The key the requested value is registered with
-     * 
+     *
      * @return object The requested value
      */
     protected function getAttribute($key)
