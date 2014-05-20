@@ -47,10 +47,8 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
      * and the deployed applications.
      *
      * @param \TechDivision\ApplicationServer\InitialContext                         $initialContext The initial context
-     * @param \TechDivision\ApplicationServer\Api\Node\ContainerNode                 $containerNode  The container's UUID
-     * @param array<\TechDivision\ApplicationServer\Interfaces\ApplicationInterface> $applications   The application instance
-     *
-     * @return void
+     * @param \TechDivision\ApplicationServer\Api\Node\ContainerNode                 $containerNode  The container node
+     * @param array<\TechDivision\ApplicationServer\Interfaces\ApplicationInterface> $applications   The applications
      */
     public function __construct($initialContext, $containerNode, $applications)
     {
@@ -103,6 +101,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
      * Updates the message monitor.
      *
      * @param Message $message The message to update the monitor for
+     * 
      * @return void
      */
     public function updateMonitor(Message $message)
@@ -127,7 +126,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
         define(
             'WEBSERVER_AUTOLOADER',
             $autoloader = WEBSERVER_BASEDIR .
-            'app' . DIRECTORY_SEPARATOR . 'code' . DIRECTORY_SEPARATOR .'vendor' . DIRECTORY_SEPARATOR . 'autoload.php'
+            'app' . DIRECTORY_SEPARATOR . 'code' . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php'
         );
 
         // setup configurations
@@ -229,12 +228,12 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
                 case BeanUtils::MESSAGEDRIVEN: // @MessageDriven
 
                     // we do nothing here, because we have not state
-                	break;
+                    break;
 
                 default: // this should never happen
 
-                	throw new InvalidBeanTypeException("Try to attach invalid bean type '$beanType'");
-                	break;
+                    throw new InvalidBeanTypeException("Try to attach invalid bean type '$beanType'");
+                    break;
             }
 
         } catch (\Exception $e) {
@@ -293,7 +292,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
             case BeanUtils::STATELESS: // @Stateless
             case BeanUtils::MESSAGEDRIVEN: // @MessageDriven
 
-            	return $this->newInstance($className, $args);
+                return $this->newInstance($className, $args);
                 break;
 
             default: // this should never happen
@@ -344,8 +343,8 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
         $beanAnnotations = array(
             BeanUtils::SINGLETON,
             BeanUtils::STATEFUL,
-        	BeanUtils::STATELESS,
-        	BeanUtils::MESSAGEDRIVEN
+            BeanUtils::STATELESS,
+            BeanUtils::MESSAGEDRIVEN
         );
 
         // iterate over the tokens
@@ -376,7 +375,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
     }
 
     /**
-     * Returns a reflection class intance for the passed class name.
+     * Returns a reflection class instance for the passed class name.
      *
      * @param string $className The class name to return the reflection instance for
      *
