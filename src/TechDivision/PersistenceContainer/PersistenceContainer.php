@@ -101,6 +101,7 @@ class PersistenceContainer extends \Stackable implements ContainerInterface
      * Updates the message monitor.
      *
      * @param Message $message The message to update the monitor for
+     * 
      * @return void
      */
     public function updateMonitor(Message $message)
