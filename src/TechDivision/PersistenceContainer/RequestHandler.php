@@ -23,6 +23,9 @@
 namespace TechDivision\PersistenceContainer;
 
 use TechDivision\Context\Context;
+use TechDivision\Http\HttpResponseStates;
+use TechDivision\PersistenceContainerProtocol\RemoteMethod;
+use TechDivision\PersistenceContainerProtocol\RemoteMethodProtocol;
 use TechDivision\ApplicationServer\Interfaces\ApplicationInterface;
 
 /**
@@ -127,20 +130,20 @@ class RequestHandler extends \Thread implements Context
                         $application->registerClassLoaders();
 
                         // unpack the remote method call
-                        $remoteMethod = RemoteMethodProtocol::unpack($request->getBodyContent());
+                        $remoteMethod = RemoteMethodProtocol::unpack($servletRequest->getBodyContent());
 
                         // lock the container and lookup the bean instance
-                        $instance = $application->getBeanManager()->locate($remoteMethod);
+                        $instance = $application->getBeanManager()->locate($remoteMethod, array($application));
 
                         // prepare method name and parameters and invoke method
-                        $methodName = $remoteMethodCall->getMethodName();
-                        $parameters = $remoteMethodCall->getParameters();
+                        $methodName = $remoteMethod->getMethodName();
+                        $parameters = $remoteMethod->getParameters();
 
                         // invoke the remote method call on the local instance
                         $response = call_user_func_array(array($instance, $methodName), $parameters);
 
                         // serialize the remote method and write it to the socket
-                        $response->appendBodyStream(RemoteMethodProtocol::pack($response));
+                        $servletResponse->appendBodyStream($packed = RemoteMethodProtocol::pack($response));
 
                         // reattach the bean instance in the container and unlock it
                         $application->getBeanManager()->attach($instance, $sessionId);

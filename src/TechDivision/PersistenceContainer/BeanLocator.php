@@ -20,9 +20,10 @@
  * @link      http://www.appserver.io
  */
 
-namespace TechDivision\MessageQueue;
+namespace TechDivision\PersistenceContainer;
 
 use TechDivision\PersistenceContainer\BeanManager;
+use TechDivision\PersistenceContainer\Utils\BeanUtils;
 use TechDivision\PersistenceContainerProtocol\RemoteMethod;
 
 /**
@@ -45,17 +46,17 @@ class BeanLocator implements ResourceLocator
      *
      * @param \TechDivision\PersistenceContainer\BeanManager           $queueManager The bean manager instance
      * @param \TechDivision\PersistenceContainer\Protocol\RemoteMethod $remoteMethod The remote method call request
+     * @param array                                                    $args         The arguments passed to the session beans constructor
      *
      * @return object The requested bean instance
      * @see \TechDivision\PersistenceContainer\ResourceLocator::locate()
      */
-    public function locate(BeanManager $beanManager, RemoteMethod $remoteMethod)
+    public function locate(BeanManager $beanManager, RemoteMethod $remoteMethod, array $args = array())
     {
 
         // load the information to locate the requested bean
         $className = $remoteMethod->getClassName();
         $sessionId = $remoteMethod->getSessionId();
-        $args      = $remoteMethod->getParameters();
 
         // lookup the requested bean
         return $this->lookup($beanManager, $className, $sessionId, $args);

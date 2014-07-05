@@ -15,7 +15,9 @@
 
 namespace TechDivision\PersistenceContainer;
 
+use TechDivision\Storage\GenericStackable;
 use TechDivision\ServletEngine\ServletEngine;
+use TechDivision\PersistenceContainer\RequestHandler;
 use TechDivision\PersistenceContainer\PersistenceContainerValve;
 
 /**
@@ -56,5 +58,21 @@ class PersistenceContainerModule extends ServletEngine
     public function initValves()
     {
         $this->valves[] = new PersistenceContainerValve();
+    }
+
+    /**
+     * Initialize the request handlers.
+     *
+     * @return void
+     */
+    public function initRequestHandlers()
+    {
+        // we want to prepare an request for each application and each worker
+        foreach ($this->getApplications() as $pattern => $application) {
+            $this->requestHandlers['/' . $application->getName()] = new GenericStackable();
+            for ($i = 0; $i < 4; $i++) {
+                $this->requestHandlers['/' . $application->getName()][$i] = new RequestHandler($application);
+            }
+        }
     }
 }

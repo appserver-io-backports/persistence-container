@@ -22,9 +22,15 @@
 
 namespace TechDivision\PersistenceContainer;
 
+use Herrera\Annotations\Tokens;
+use Herrera\Annotations\Tokenizer;
+use Herrera\Annotations\Convert\ToArray;
 use TechDivision\Context\Context;
+use TechDivision\Storage\GenericStackable;
 use TechDivision\Storage\StackableStorage;
-use TechDivision\PersistenceManagerProtocol\RemoteMethod;
+use TechDivision\PersistenceContainer\Utils\BeanUtils;
+use TechDivision\PersistenceContainerProtocol\RemoteMethod;
+
 /**
  * The bean manager handles the message and session beans registered for the application.
  *
@@ -126,28 +132,17 @@ class BeanManager extends GenericStackable implements Context
     }
 
     /**
-     * Returns the value with the passed name from the context.
-     *
-     * @param string $key The key of the value to return from the context.
-     *
-     * @return mixed The requested attribute
-     */
-    public function getAttribute($key)
-    {
-        throw new \Exception(sprintf('%s is not implemented yes', __METHOD__));
-    }
-
-    /**
      * Tries to locate the queue that handles the request and returns the instance
      * if one can be found.
      *
      * @param \TechDivision\PersistenceContainerProtocol\RemoteMethod $request The remote method call
+     * @param array                                                   $args    The arguments passed to the session beans constructor
      *
      * @return object The requested bean instance
      */
-    public function locate(RemoteMethod $remoteMethod)
+    public function locate(RemoteMethod $remoteMethod, array $args = array())
     {
-        return $this->getResourceLocator()->locate($this, $remoteMethod);
+        return $this->getResourceLocator()->locate($this, $remoteMethod, $args);
     }
 
     /**
@@ -295,7 +290,7 @@ class BeanManager extends GenericStackable implements Context
      *
      * @return void
      */
-    protected function setAttribute($key, $value)
+    public function setAttribute($key, $value)
     {
         $this->beans->set($key, $value);
     }
@@ -307,7 +302,7 @@ class BeanManager extends GenericStackable implements Context
      *
      * @return object The requested value
      */
-    protected function getAttribute($key)
+    public function getAttribute($key)
     {
         return $this->beans->get($key);
     }
