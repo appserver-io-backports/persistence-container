@@ -148,16 +148,16 @@ class RequestHandler extends \Thread implements Context
                         // reattach the bean instance in the container and unlock it
                         $application->getBeanManager()->attach($instance, $sessionId);
 
+                        // set the request state to dispatched
+                        $servletResponse->setState(HttpResponseStates::DISPATCH);
+
+                        // reset the flag
+                        $self->handleRequest = false;
+
                     } catch (\Exception $e) {
                         $servletResponse->appendBodyStream($e->__toString());
                         $servletResponse->setStatusCode(500);
                     }
-
-                    // set the request state to dispatched
-                    $servletResponse->setState(HttpResponseStates::DISPATCH);
-
-                    // reset the flag
-                    $self->handleRequest = false;
                 }
 
             }, $this);

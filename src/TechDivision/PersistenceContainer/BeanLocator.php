@@ -77,7 +77,7 @@ class BeanLocator implements ResourceLocator
      * @return object The requested session bean
      * @throws \Exception Is thrown if passed class name is no session bean or is a entity bean (not implmented yet)
      */
-    public function lookup(BeanManager $beanManager, $className, $sessionId, array $args = array())
+    public function lookup(BeanManager $beanManager, $className, $sessionId = null, array $args = array())
     {
 
         // get the reflection class for the passed class name

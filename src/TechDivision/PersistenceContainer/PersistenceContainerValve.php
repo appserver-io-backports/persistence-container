@@ -74,6 +74,8 @@ class PersistenceContainerValve
 
         // wait until the response has been dispatched
         while ($servletResponse->hasState(HttpResponseStates::DISPATCH) === false) {
+            // reduce CPU load a bit
+            usleep(1000); // === 0.1 ms
         }
     }
 }
