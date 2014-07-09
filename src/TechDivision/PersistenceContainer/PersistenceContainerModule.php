@@ -15,11 +15,21 @@
 
 namespace TechDivision\PersistenceContainer;
 
+use TechDivision\Http\HttpProtocol;
+use TechDivision\Http\HttpResponseStates;
 use TechDivision\Storage\GenericStackable;
+use TechDivision\Server\Dictionaries\ModuleHooks;
+use TechDivision\Server\Dictionaries\ServerVars;
+use TechDivision\Server\Interfaces\RequestContextInterface;
+use TechDivision\Servlet\Http\HttpServletRequest;
+use TechDivision\ServletEngine\Http\Request;
+use TechDivision\ServletEngine\Http\Response;
 use TechDivision\ServletEngine\ServletEngine;
+use TechDivision\ServletEngine\BadRequestException;
 use TechDivision\PersistenceContainer\RequestHandler;
 use TechDivision\PersistenceContainer\PersistenceContainerValve;
-use TechDivision\Servlet\Http\HttpServletRequest;
+use TechDivision\Connection\ConnectionRequestInterface;
+use TechDivision\Connection\ConnectionResponseInterface;
 
 /**
  * A persistence container module implementation.
@@ -75,27 +85,133 @@ class PersistenceContainerModule extends ServletEngine
     }
 
     /**
+     * Process servlet request.
+     *
+     * @param \TechDivision\Connection\ConnectionRequestInterface     $request        A request object
+     * @param \TechDivision\Connection\ConnectionResponseInterface    $response       A response object
+     * @param \TechDivision\Server\Interfaces\RequestContextInterface $requestContext A requests context instance
+     * @param int                                                     $hook           The current hook to process logic for
+     *
+     * @return bool
+     * @throws \TechDivision\Server\Exceptions\ModuleException
+     */
+    public function process(ConnectionRequestInterface $request, ConnectionResponseInterface $response,  RequestContextInterface $requestContext, $hook)
+    {
+
+        try {
+
+            // In php an interface is, by definition, a fixed contract. It is immutable.
+            // So we have to declair the right ones afterwards...
+            /** @var $request \TechDivision\Http\HttpRequestInterface */
+            /** @var $request \TechDivision\Http\HttpResponseInterface */
+
+            // if false hook is comming do nothing
+            if (ModuleHooks::REQUEST_POST !== $hook) {
+                return;
+            }
+
+            // check if we are the handler that has to process this request
+            if ($requestContext->getServerVar(ServerVars::SERVER_HANDLER) !== $this->getModuleName()) {
+                return;
+            }
+
+            // intialize servlet session, request + response
+            $servletRequest = new Request();
+            $servletRequest->injectHttpRequest($request);
+            $servletRequest->injectServerVars($requestContext->getServerVars());
+
+            // initialize the parts
+            foreach ($request->getParts() as $name => $part) {
+                $servletRequest->addPart(Part::fromHttpRequest($part));
+            }
+
+            // set the body content if we can find one
+            if ($request->getHeader(HttpProtocol::HEADER_CONTENT_LENGTH) > 0) {
+                $servletRequest->setBodyStream($request->getBodyContent());
+            }
+
+            // prepare the servlet request
+            $this->prepareServletRequest($servletRequest);
+
+            // initialize the servlet response with the Http response values
+            $servletResponse = new Response();
+            $servletRequest->injectResponse($servletResponse);
+
+            // load a NOT working request handler from the pool
+            $requestHandler = $this->requestHandlerFromPool($servletRequest);
+
+            // inject request/response and process the remote method call
+            $requestHandler->injectRequest($servletRequest);
+            $requestHandler->injectResponse($servletResponse);
+            $requestHandler->start();
+            $requestHandler->join();
+
+            // re-attach the request handler to the pool
+            $this->requestHandlerToPool($requestHandler);
+
+            // copy the values from the servlet response back to the HTTP response
+            $response->setStatusCode($servletResponse->getStatusCode());
+            $response->setStatusReasonPhrase($servletResponse->getStatusReasonPhrase());
+            $response->setVersion($servletResponse->getVersion());
+            $response->setState($servletResponse->getState());
+
+            // append the content to the body stream
+            $response->appendBodyStream($servletResponse->getBodyStream());
+
+            // transform the servlet headers back into HTTP headers
+            $headers = array();
+            foreach ($servletResponse->getHeaders() as $name => $header) {
+                $headers[$name] = $header;
+            }
+
+            // set the headers as array (because we don't know if we have to use the append flag)
+            $response->setHeaders($headers);
+
+            // copy the servlet response cookies back to the HTTP response
+            foreach ($servletResponse->getCookies() as $cookie) {
+                $response->addCookie($cookie);
+            }
+
+            // set response state to be dispatched after this without calling other modules process
+            $response->setState(HttpResponseStates::DISPATCH);
+
+        } catch (ModuleException $me) {
+            throw $me;
+        } catch (\Exception $e) {
+            throw new ModuleException($e, 500);
+        }
+    }
+
+    /**
      * Tries to find a request handler that matches the actual request and injects it into the request.
      *
-     * @param \TechDivision\Servlet\Http\HttpServletRequest $servletRequest The request instance to we have to inject a request handler
+     * @param string $contextPath The context path we need a request handler to handle for
      *
-     * @return void
+     * @return \TechDivision\ServletEngine\RequestHandler The request handler
      */
     protected function requestHandlerFromPool(HttpServletRequest $servletRequest)
     {
 
-        // iterate over all applications to create a new request handler
-        foreach ($this->getApplications() as $pattern => $application) {
+        // explode host and port from the host header
+        list ($host, $port) = explode(':', $servletRequest->getHeader(HttpProtocol::HEADER_HOST));
 
-            // if the application name matches the servlet context
-            if ($application->getName() === ltrim($servletRequest->getContextPath(), '/')) {
+        // prepare the request URL we want to match
+        $url =  $host . $servletRequest->getUri();
 
-                // create a new request handler and inject it into the servlet request
-                $requestHandler = new RequestHandler($application);
+        // iterate over all request handlers for the request we has to handle
+        foreach ($this->urlMappings as $pattern => $applicationName) {
+
+            // try to match a registered application with the passed request
+            if (preg_match($pattern, $url) === 1) {
+
+                // create a new request handler and return it
+                $requestHandler = new RequestHandler($this->applications[$applicationName], $this->valves);
                 $this->workingRequestHandlers[$requestHandler->getThreadId()] = true;
-                $servletRequest->injectRequestHandler($requestHandler);
-                break;
+                return $requestHandler;
             }
         }
+
+        // if not throw a bad request exception
+        throw new BadRequestException(sprintf('Can\'t find application for URI %s', $uri));
     }
 }

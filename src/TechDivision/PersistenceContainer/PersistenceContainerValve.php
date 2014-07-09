@@ -22,10 +22,10 @@
 
 namespace TechDivision\PersistenceContainer;
 
-use \TechDivision\Http\HttpResponseStates;
-use \TechDivision\Servlet\ServletSession;
+use \TechDivision\ServletEngine\Valve;
 use \TechDivision\Servlet\Http\HttpServletRequest;
 use \TechDivision\Servlet\Http\HttpServletResponse;
+use TechDivision\PersistenceContainerProtocol\RemoteMethodProtocol;
 
 /**
  * Valve implementation that will be executed by the servlet engine to handle
@@ -39,7 +39,7 @@ use \TechDivision\Servlet\Http\HttpServletResponse;
  * @link      https://github.com/techdivision/TechDivision_PersistenceContainer
  * @link      http://www.appserver.io
  */
-class PersistenceContainerValve
+class PersistenceContainerValve implements Valve
 {
 
     /**
@@ -54,13 +54,40 @@ class PersistenceContainerValve
     public function invoke(HttpServletRequest $servletRequest, HttpServletResponse $servletResponse)
     {
 
-        // load the application context
-        $context = $servletRequest->getRequestHandler();
+        try {
 
-        // inject request/response and process the remote method call
-        $context->injectRequest($servletRequest);
-        $context->injectResponse($servletResponse);
-        $context->start();
-        $context->join();
+            // unpack the remote method call
+            $remoteMethod = RemoteMethodProtocol::unpack($servletRequest->getBodyContent());
+
+            // load the application context
+            $application = $servletRequest->getContext();
+
+            // lock the container and lookup the bean instance
+            $instance = $application->getBeanManager()->locate($remoteMethod, array($application));
+
+            // prepare method name and parameters and invoke method
+            $methodName = $remoteMethod->getMethodName();
+            $parameters = $remoteMethod->getParameters();
+
+            // invoke the remote method call on the local instance
+            $response = call_user_func_array(array($instance, $methodName), $parameters);
+
+            // serialize the remote method and write it to the socket
+            $servletResponse->appendBodyStream(RemoteMethodProtocol::pack($response));
+
+            // reattach the bean instance in the container and unlock it
+            $application->getBeanManager()->attach($instance, $sessionId);
+
+        } catch(\Exception $e) {
+
+            // catch the exception and append it to the body stream
+            $servletResponse->setStatusCode(500);
+            $servletResponse->appendBodyStream(RemoteMethodProtocol::pack($e));
+
+        } finally {
+
+            // dispatch this request, because we have finished processing it
+            $servletRequest->setDispatched(true);
+        }
     }
 }
