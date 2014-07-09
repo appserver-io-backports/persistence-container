@@ -51,26 +51,23 @@ class RequestHandler extends \Thread implements Context
     protected $application;
 
     /**
-     * Flag to allow/disallow request handling.
-     *
-     * @return boolean
-     */
-    protected $handleRequest;
-
-    /**
      * Initializes the request handler with the application.
      *
      * @return \TechDivision\ApplicationServer\Interfaces\ApplicationInterface The application instance
      */
     public function __construct(ApplicationInterface $application)
     {
-
-        // initialize the request handlers application
         $this->application = $application;
-        $this->handleRequest = false;
+    }
 
-        // start the request processing
-        $this->start();
+    public function injectRequest($servletRequest)
+    {
+        $this->servletRequest = $servletRequest;
+    }
+
+    public function injectResponse($servletResponse)
+    {
+        $this->servletResponse = $servletResponse;
     }
 
     /**
@@ -103,64 +100,44 @@ class RequestHandler extends \Thread implements Context
     public function run()
     {
 
-        while (true) {
+        try {
 
-            // synchronize the response data
-            $this->synchronized(function ($self) {
+            // create a local instance of appication
+            $application = $this->application;
 
-                // wait until we've to handle a new request
-                $self->wait();
+            // register the class loader again, because each thread has its own context
+            $application->registerClassLoaders();
 
-                // check if we've to handle a request
-                if ($self->handleRequest) {
+            // synchronize the servlet request/response
+            $servletRequest = $this->servletRequest;
+            $servletResponse = $this->servletResponse;
 
-                    try {
+            // register the class loader again, because each thread has its own context
+            $application->registerClassLoaders();
 
-                        // create a local instance of appication
-                        $application = $self->application;
+            // unpack the remote method call
+            $remoteMethod = RemoteMethodProtocol::unpack($servletRequest->getBodyContent());
 
-                        // register the class loader again, because each thread has its own context
-                        $application->registerClassLoaders();
+            // lock the container and lookup the bean instance
+            $instance = $application->getBeanManager()->locate($remoteMethod, array($application));
 
-                        // synchronize the servlet request/response
-                        $servletRequest = $self->servletRequest;
-                        $servletResponse = $self->servletResponse;
+            // prepare method name and parameters and invoke method
+            $methodName = $remoteMethod->getMethodName();
+            $parameters = $remoteMethod->getParameters();
 
-                        // register the class loader again, because each thread has its own context
-                        $application->registerClassLoaders();
+            // invoke the remote method call on the local instance
+            $response = call_user_func_array(array($instance, $methodName), $parameters);
 
-                        // unpack the remote method call
-                        $remoteMethod = RemoteMethodProtocol::unpack($servletRequest->getBodyContent());
+            // serialize the remote method and write it to the socket
+            $servletResponse->appendBodyStream($packed = RemoteMethodProtocol::pack($response));
 
-                        // lock the container and lookup the bean instance
-                        $instance = $application->getBeanManager()->locate($remoteMethod, array($application));
+            // reattach the bean instance in the container and unlock it
+            $application->getBeanManager()->attach($instance, $sessionId);
 
-                        // prepare method name and parameters and invoke method
-                        $methodName = $remoteMethod->getMethodName();
-                        $parameters = $remoteMethod->getParameters();
+        } catch (\Exception $e) {
 
-                        // invoke the remote method call on the local instance
-                        $response = call_user_func_array(array($instance, $methodName), $parameters);
-
-                        // serialize the remote method and write it to the socket
-                        $servletResponse->appendBodyStream($packed = RemoteMethodProtocol::pack($response));
-
-                        // reattach the bean instance in the container and unlock it
-                        $application->getBeanManager()->attach($instance, $sessionId);
-
-                        // set the request state to dispatched
-                        $servletResponse->setState(HttpResponseStates::DISPATCH);
-
-                        // reset the flag
-                        $self->handleRequest = false;
-
-                    } catch (\Exception $e) {
-                        $servletResponse->appendBodyStream($e->__toString());
-                        $servletResponse->setStatusCode(500);
-                    }
-                }
-
-            }, $this);
+            $servletResponse->appendBodyStream($e->__toString());
+            $servletResponse->setStatusCode(500);
         }
     }
 }

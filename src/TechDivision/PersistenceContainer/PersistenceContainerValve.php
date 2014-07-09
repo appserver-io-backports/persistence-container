@@ -57,25 +57,10 @@ class PersistenceContainerValve
         // load the application context
         $context = $servletRequest->getRequestHandler();
 
-        // notify the application to handle the request
-        $context->synchronized(function ($self, $request, $response) {
-
-            // set the servlet/response intances
-            $self->servletRequest = $request;
-            $self->servletResponse = $response;
-
-            // set the flag to start request processing
-            $self->handleRequest = true;
-
-            // notify the request handler
-            $self->notify();
-
-        }, $context, $servletRequest, $servletResponse);
-
-        // wait until the response has been dispatched
-        while ($servletResponse->hasState(HttpResponseStates::DISPATCH) === false) {
-            // reduce CPU load a bit
-            usleep(1000); // === 0.1 ms
-        }
+        // inject request/response and process the remote method call
+        $context->injectRequest($servletRequest);
+        $context->injectResponse($servletResponse);
+        $context->start();
+        $context->join();
     }
 }
