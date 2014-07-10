@@ -25,6 +25,7 @@ namespace TechDivision\PersistenceContainer;
 use \TechDivision\ServletEngine\Valve;
 use \TechDivision\Servlet\Http\HttpServletRequest;
 use \TechDivision\Servlet\Http\HttpServletResponse;
+use TechDivision\PersistenceContainerProtocol\BeanContext;
 use TechDivision\PersistenceContainerProtocol\RemoteMethodProtocol;
 
 /**
@@ -61,9 +62,10 @@ class PersistenceContainerValve implements Valve
 
             // load the application context
             $application = $servletRequest->getContext();
+            $beanManager = $application->getManager(BeanContext::IDENTIFIER);
 
             // lock the container and lookup the bean instance
-            $instance = $application->getBeanManager()->locate($remoteMethod, array($application));
+            $instance = $beanManager->locate($remoteMethod, array($application));
 
             // prepare method name and parameters and invoke method
             $methodName = $remoteMethod->getMethodName();
@@ -76,7 +78,7 @@ class PersistenceContainerValve implements Valve
             $servletResponse->appendBodyStream(RemoteMethodProtocol::pack($response));
 
             // reattach the bean instance in the container and unlock it
-            $application->getBeanManager()->attach($instance, $sessionId);
+            $beanManager->attach($instance, $sessionId);
 
         } catch(\Exception $e) {
 

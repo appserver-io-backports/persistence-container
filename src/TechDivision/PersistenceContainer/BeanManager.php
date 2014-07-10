@@ -25,10 +25,10 @@ namespace TechDivision\PersistenceContainer;
 use Herrera\Annotations\Tokens;
 use Herrera\Annotations\Tokenizer;
 use Herrera\Annotations\Convert\ToArray;
-use TechDivision\Context\Context;
 use TechDivision\Storage\GenericStackable;
 use TechDivision\Storage\StackableStorage;
 use TechDivision\PersistenceContainer\Utils\BeanUtils;
+use TechDivision\PersistenceContainerProtocol\BeanContext;
 use TechDivision\PersistenceContainerProtocol\RemoteMethod;
 
 /**
@@ -42,7 +42,7 @@ use TechDivision\PersistenceContainerProtocol\RemoteMethod;
  * @link      https://github.com/techdivision/TechDivision_PersistenceContainer
  * @link      http://www.appserver.io
  */
-class BeanManager extends GenericStackable implements Context
+class BeanManager extends GenericStackable implements BeanContext
 {
 
     /**
@@ -333,5 +333,16 @@ class BeanManager extends GenericStackable implements Context
         // create and return a new instance
         $reflectionClass = $this->newReflectionClass($className);
         return $reflectionClass->newInstanceArgs($args);
+    }
+
+    /**
+     * Initializes the manager instance.
+     *
+     * @return void
+     * @see \TechDivision\Application\Interfaces\ManagerInterface::initialize()
+     */
+    public function getIdentifier()
+    {
+        return BeanContext::IDENTIFIER;
     }
 }

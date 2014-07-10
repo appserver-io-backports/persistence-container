@@ -23,7 +23,9 @@
 namespace TechDivision\PersistenceContainer;
 
 use TechDivision\Http\HttpResponseStates;
-use TechDivision\ApplicationServer\Interfaces\ApplicationInterface;
+use TechDivision\Servlet\Http\HttpServletRequest;
+use TechDivision\Servlet\Http\HttpServletResponse;
+use TechDivision\Application\Interfaces\ApplicationInterface;
 
 /**
  * This is a request handler that is necessary to process each request of an
@@ -63,18 +65,31 @@ class RequestHandler extends \Thread
      */
     public function __construct(ApplicationInterface $application, $valves)
     {
-
         // initialize the request handlers application
         $this->application = $application;
         $this->valves = $valves;
     }
 
-    public function injectRequest($servletRequest)
+    /**
+     * Inject the actual servlet request.
+     *
+     * @return \TechDivision\Serlvet\Http\HttpServletRequest The actual request instance
+     *
+     * @return void
+     */
+    public function injectRequest(HttpServletRequest $servletRequest)
     {
         $this->servletRequest = $servletRequest;
     }
 
-    public function injectResponse($servletResponse)
+    /**
+     * Inject the actual servlet response.
+     *
+     * @return \TechDivision\Serlvet\Http\HttpServletResponse The actual response instance
+     *
+     * @return void
+     */
+    public function injectResponse(HttpServletResponse $servletResponse)
     {
         $this->servletResponse = $servletResponse;
     }
