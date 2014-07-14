@@ -5,8 +5,10 @@
     "license": [ "OSL-3.0" ],
     "require": {
         "php": ">=5.4.0",
-        "techdivision/appserver": "0.6.*",
-        "techdivision/persistencecontainerprotocol": "0.1.*"
+        "doctrine/orm": "2.4.*",
+        "herrera-io/annotations": "1.0.*",
+        "techdivision/appserver": "0.7.*",
+        "techdivision/persistencecontainerprotocol": "0.2.*"
     },
     "autoload": {
         "psr-0": {
