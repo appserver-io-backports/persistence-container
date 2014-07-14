@@ -1,7 +1,7 @@
 <?php
 
 /**
- * TechDivision\PersistenceContainer\PersistenceContainer
+ * TechDivision\PersistenceContainer\BeanManager
  *
  * NOTICE OF LICENSE
  *
@@ -11,12 +11,13 @@
  *
  * PHP version 5
  *
- * @category  Appserver
+ * @category  Library
  * @package   TechDivision_PersistenceContainer
  * @author    Tim Wagner <tw@techdivision.com>
  * @author    Bernhard Wick <b.wick@techdivision.com>
  * @copyright 2014 TechDivision GmbH <info@techdivision.com>
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @link      https://github.com/techdivision/TechDivision_PersistenceContainer
  * @link      http://www.appserver.io
  */
 
@@ -25,35 +26,125 @@ namespace TechDivision\PersistenceContainer;
 use Herrera\Annotations\Tokens;
 use Herrera\Annotations\Tokenizer;
 use Herrera\Annotations\Convert\ToArray;
-use TechDivision\MessageQueueProtocol\Message;
-use TechDivision\ApplicationServer\ServerNodeConfiguration;
+use TechDivision\Storage\GenericStackable;
+use TechDivision\Storage\StackableStorage;
 use TechDivision\PersistenceContainer\Utils\BeanUtils;
-use TechDivision\ApplicationServer\AbstractContainerThread;
+use TechDivision\PersistenceContainerProtocol\BeanContext;
+use TechDivision\PersistenceContainerProtocol\RemoteMethod;
 
 /**
- * Class Container
+ * The bean manager handles the message and session beans registered for the application.
  *
- * @category  Appserver
+ * @category  Library
  * @package   TechDivision_PersistenceContainer
  * @author    Tim Wagner <tw@techdivision.com>
  * @author    Bernhard Wick <b.wick@techdivision.com>
  * @copyright 2014 TechDivision GmbH <info@techdivision.com>
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @link      https://github.com/techdivision/TechDivision_PersistenceContainer
  * @link      http://www.appserver.io
  */
-class PersistenceContainer extends AbstractContainerThread
+class BeanManager extends GenericStackable implements BeanContext
 {
 
     /**
-     * Updates the message monitor.
-     *
-     * @param Message $message The message to update the monitor for
+     * Initializes the bean manager.
      *
      * @return void
      */
-    public function updateMonitor(Message $message)
+    public function __construct()
     {
-        error_log('Update message monitor for message: ' . spl_object_hash($message));
+
+        // initialize the member variables
+        $this->webappPath = '';
+        $this->resourceLocator = null;
+
+        // initialize the stackable for the beans
+        $this->beans = new StackableStorage();
+
+    }
+
+    /**
+     * Injects the absolute path to the web application.
+     *
+     * @param string $webappPath The absolute path to this web application
+     *
+     * @return void
+     */
+    public function injectWebappPath($webappPath)
+    {
+        $this->webappPath = $webappPath;
+    }
+
+    /**
+     * Injects the resource locator that locates the requested queue.
+     *
+     * @param \TechDivision\MessageQueue\ResourceLocator $resourceLocator The resource locator
+     *
+     * @return void
+     */
+    public function injectResourceLocator(ResourceLocator $resourceLocator)
+    {
+        $this->resourceLocator = $resourceLocator;
+    }
+
+    /**
+     * Has been automatically invoked by the container after the application
+     * instance has been created.
+     *
+     * @return \TechDivision\ServletContainer\Application The connected application
+     */
+    public function initialize()
+    {
+
+        // deploy the message queues
+        $this->registerBeans();
+
+        // return the instance itself
+        return $this;
+    }
+
+    /**
+     * Registers the message beans.
+     *
+     * @return void
+     */
+    protected function registerBeans()
+    {
+    }
+
+    /**
+     * Returns the absolute path to the web application.
+     *
+     * @return string The absolute path
+     */
+    public function getWebappPath()
+    {
+        return $this->webappPath;
+    }
+
+    /**
+     * Return the resource locator instance.
+     *
+     * @return \TechDivision\MessageQueue\ResourceLocator The resource locator instance
+     */
+    public function getResourceLocator()
+    {
+        return $this->resourceLocator;
+    }
+
+    /**
+     * Tries to locate the queue that handles the request and returns the instance
+     * if one can be found.
+     *
+     * @param \TechDivision\PersistenceContainerProtocol\RemoteMethod $request The remote method call
+     * @param array                                                   $args    The arguments passed to the session beans constructor
+     *
+     * @return object The requested bean instance
+     */
+    public function locate(RemoteMethod $remoteMethod, array $args = array())
+    {
+        return $this->getResourceLocator()->locate($this, $remoteMethod, $args);
     }
 
     /**
@@ -79,7 +170,7 @@ class PersistenceContainer extends AbstractContainerThread
                 case BeanUtils::STATEFUL: // @Stateful
 
                     // lock the container
-                    $this->lock();
+                    $this->beans->lock();
 
                     // check if we've a session-ID available
                     if ($sessionId == null) {
@@ -99,20 +190,20 @@ class PersistenceContainer extends AbstractContainerThread
                     $this->setAttribute($sessionId, $session);
 
                     // unlock the container
-                    $this->unlock();
+                    $this->beans->unlock();
 
                     break;
 
                 case BeanUtils::SINGLETON: // @Singleton
 
                     // lock the container
-                    $this->lock();
+                    $this->beans->lock();
 
                     // replace any existing bean in the container
                     $this->setAttribute($reflectionObject->getName(), $instance);
 
                     // unlock the container
-                    $this->unlock();
+                    $this->beans->unlock();
 
                     break;
 
@@ -131,66 +222,6 @@ class PersistenceContainer extends AbstractContainerThread
         } catch (\Exception $e) {
             $this->unlock();
             throw $e;
-        }
-    }
-
-    /**
-     * Run's a lookup for the session bean with the passed class name and
-     * session ID.
-     * If the passed class name is a session bean an instance
-     * will be returned.
-     *
-     * @param string $className The name of the session bean's class
-     * @param string $sessionId The session ID
-     * @param array  $args      The arguments passed to the session beans constructor
-     *
-     * @return object The requested session bean
-     * @throws \Exception Is thrown if passed class name is no session bean or is a entity bean (not implmented yet)
-     */
-    public function lookup($className, $sessionId, array $args = array())
-    {
-
-        // get the reflection class for the passed class name
-        $reflectionClass = $this->newReflectionClass($className);
-
-        // check what kind of bean we have
-        switch ($beanType = $this->getBeanAnnotation($reflectionClass)) {
-
-            case BeanUtils::STATEFUL: // @Stateful
-
-                // load the session's from the initial context
-                $session = $this->getAttribute($sessionId);
-
-                // if an instance exists, load and return it
-                if (is_array($session)) {
-                    if (array_key_exists($className, $session)) {
-                        return $session[$className];
-                    }
-                }
-
-                // if not, initialize a new instance, add it to the container and return it
-                return $this->newInstance($className, $args);
-
-            case BeanUtils::SINGLETON: // @Singleton
-
-                // check if an instance is available
-                if ($this->getAttribute($className)) {
-                    return $this->getAttribute($className);
-                }
-
-                // if not create a new instance and return it
-                return $this->newInstance($className, $args);
-
-            case BeanUtils::STATELESS: // @Stateless
-            case BeanUtils::MESSAGEDRIVEN: // @MessageDriven
-
-                return $this->newInstance($className, $args);
-                break;
-
-            default: // this should never happen
-
-                throw new InvalidBeanTypeException("Try to lookup invalid bean type '$beanType'");
-                break;
         }
     }
 
@@ -254,18 +285,6 @@ class PersistenceContainer extends AbstractContainerThread
     }
 
     /**
-     * Returns a reflection class instance for the passed class name.
-     *
-     * @param string $className The class name to return the reflection instance for
-     *
-     * @return \ReflectionClass The reflection instance
-     */
-    public function newReflectionClass($className)
-    {
-        return $this->getInitialContext()->newReflectionClass($className);
-    }
-
-    /**
      * Registers the value with the passed key in the container.
      *
      * @param string $key   The key to register the value with
@@ -273,9 +292,9 @@ class PersistenceContainer extends AbstractContainerThread
      *
      * @return void
      */
-    protected function setAttribute($key, $value)
+    public function setAttribute($key, $value)
     {
-        $this[$key] = $value;
+        $this->beans->set($key, $value);
     }
 
     /**
@@ -285,8 +304,47 @@ class PersistenceContainer extends AbstractContainerThread
      *
      * @return object The requested value
      */
-    protected function getAttribute($key)
+    public function getAttribute($key)
     {
-        return $this[$key];
+        return $this->beans->get($key);
+    }
+
+    /**
+     * Returns a reflection class intance for the passed class name.
+     *
+     * @param string $className The class name to return the reflection instance for
+     *
+     * @return \ReflectionClass The reflection instance
+     */
+    public function newReflectionClass($className)
+    {
+        return new \ReflectionClass($className);
+    }
+
+    /**
+     * Returns a new instance of the passed class name.
+     *
+     * @param string $className The fully qualified class name to return the instance for
+     * @param array  $args      Arguments to pass to the constructor of the instance
+     *
+     * @return object The instance itself
+     * @todo Has to be refactored to avoid registering autoloader on every call
+     */
+    public function newInstance($className, array $args = array())
+    {
+        // create and return a new instance
+        $reflectionClass = $this->newReflectionClass($className);
+        return $reflectionClass->newInstanceArgs($args);
+    }
+
+    /**
+     * Initializes the manager instance.
+     *
+     * @return void
+     * @see \TechDivision\Application\Interfaces\ManagerInterface::initialize()
+     */
+    public function getIdentifier()
+    {
+        return BeanContext::IDENTIFIER;
     }
 }
