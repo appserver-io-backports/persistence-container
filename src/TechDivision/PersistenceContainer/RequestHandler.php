@@ -73,7 +73,7 @@ class RequestHandler extends \Thread
     /**
      * Inject the actual servlet request.
      *
-     * @return \TechDivision\Serlvet\Http\HttpServletRequest The actual request instance
+     * @param \TechDivision\Serlvet\Http\HttpServletRequest $servletRequest The actual request instance
      *
      * @return void
      */
@@ -85,7 +85,7 @@ class RequestHandler extends \Thread
     /**
      * Inject the actual servlet response.
      *
-     * @return \TechDivision\Serlvet\Http\HttpServletResponse The actual response instance
+     * @param \TechDivision\Serlvet\Http\HttpServletResponse $servletResponse The actual response instance
      *
      * @return void
      */

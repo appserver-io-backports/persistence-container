@@ -43,8 +43,8 @@ interface ResourceLocator
      * Tries to locate the bean that handles the request and returns the instance
      * if one can be found.
      *
-     * @param \TechDivision\PersistenceContainer\BeanManager           $queueManager The bean manager instance
-     * @param \TechDivision\PersistenceContainer\Protocol\RemoteMethod $request      The remote method call
+     * @param \TechDivision\PersistenceContainer\BeanManager           $beanManager  The bean manager instance
+     * @param \TechDivision\PersistenceContainer\Protocol\RemoteMethod $remoteMethod The remote method call
      *
      * @return object The requested bean instance
      */

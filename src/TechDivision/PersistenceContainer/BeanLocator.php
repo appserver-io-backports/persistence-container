@@ -44,7 +44,7 @@ class BeanLocator implements ResourceLocator
      * Tries to locate the bean that handles the request and returns the instance
      * if one can be found.
      *
-     * @param \TechDivision\PersistenceContainer\BeanManager           $queueManager The bean manager instance
+     * @param \TechDivision\PersistenceContainer\BeanManager           $beanManager  The bean manager instance
      * @param \TechDivision\PersistenceContainer\Protocol\RemoteMethod $remoteMethod The remote method call request
      * @param array                                                    $args         The arguments passed to the session beans constructor
      *
@@ -69,10 +69,10 @@ class BeanLocator implements ResourceLocator
      * If the passed class name is a session bean an instance
      * will be returned.
      *
-     * @param \TechDivision\PersistenceContainer\BeanManager           $queueManager The bean manager instance
-     * @param string                                                   $className    The name of the session bean's class
-     * @param string                                                   $sessionId    The session ID
-     * @param array                                                    $args         The arguments passed to the session beans constructor
+     * @param \TechDivision\PersistenceContainer\BeanManager $beanManager The bean manager instance
+     * @param string                                         $className   The name of the session bean's class
+     * @param string                                         $sessionId   The session ID
+     * @param array                                          $args        The arguments passed to the session beans constructor
      *
      * @return object The requested session bean
      * @throws \Exception Is thrown if passed class name is no session bean or is a entity bean (not implmented yet)

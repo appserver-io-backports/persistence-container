@@ -80,7 +80,7 @@ class PersistenceContainerValve implements Valve
             // reattach the bean instance in the container and unlock it
             $beanManager->attach($instance, $sessionId);
 
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
 
             // catch the exception and append it to the body stream
             $servletResponse->setStatusCode(500);

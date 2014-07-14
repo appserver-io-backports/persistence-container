@@ -137,8 +137,8 @@ class BeanManager extends GenericStackable implements BeanContext
      * Tries to locate the queue that handles the request and returns the instance
      * if one can be found.
      *
-     * @param \TechDivision\PersistenceContainerProtocol\RemoteMethod $request The remote method call
-     * @param array                                                   $args    The arguments passed to the session beans constructor
+     * @param \TechDivision\PersistenceContainerProtocol\RemoteMethod $remoteMethod The remote method call
+     * @param array                                                   $args         The arguments passed to the session beans constructor
      *
      * @return object The requested bean instance
      */
