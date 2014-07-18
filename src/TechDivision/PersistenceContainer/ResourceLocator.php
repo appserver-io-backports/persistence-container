@@ -49,4 +49,21 @@ interface ResourceLocator
      * @return object The requested bean instance
      */
     public function locate(BeanManager $beanManager, RemoteMethod $remoteMethod);
+
+    /**
+     * Run's a lookup for the session bean with the passed class name and
+     * session ID.
+     *
+     * If the passed class name is a session bean an instance
+     * will be returned.
+     *
+     * @param \TechDivision\PersistenceContainer\BeanManager $beanManager The bean manager instance
+     * @param string                                         $className   The name of the session bean's class
+     * @param string                                         $sessionId   The session ID
+     * @param array                                          $args        The arguments passed to the session beans constructor
+     *
+     * @return object The requested session bean
+     * @throws \Exception Is thrown if passed class name is no session bean or is a entity bean (not implmented yet)
+     */
+    public function lookup(BeanManager $beanManager, $className, $sessionId = null, array $args = array());
 }

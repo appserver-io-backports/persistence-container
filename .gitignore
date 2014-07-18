@@ -6,3 +6,5 @@
 /.settings
 /.idea
 /*.iml
+/vendor
+/composer.lock
