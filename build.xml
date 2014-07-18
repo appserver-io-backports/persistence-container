@@ -29,7 +29,6 @@
 	<target name="prepare" depends="clean" description="Prepares all the required directories.">
 		<mkdir dir="${php-target.dir}" />
         <mkdir dir="${php-target.dir}/reports/unit/coverage" />
-        <symlink resource="${instance.base.dir}" link="instance-src" overwrite="true"/>
 	</target>
 	
     <!-- ==================================================================== -->
@@ -71,7 +70,7 @@
     <target name="phpcs" description="Runs the code sniffer and generates a report.">
         <exec executable="phpcs" failonerror="true">
             <!-- call phpcs without report-file to get error message on build console -->
-            <arg line="-n --extensions=php --standard=phpcs.xml ."/>
+            <arg line="-n --extensions=php --standard=phpcs.xml ./"/>
         </exec>
     </target>
 	
