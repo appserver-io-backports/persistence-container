@@ -12,7 +12,7 @@
  *
  * @category  Library
  * @package   TechDivision_PersistenceContainer
- * @author    Johann Zelger<jz@techdivision.com>
+ * @author    Johann Zelger <jz@techdivision.com>
  * @copyright 2014 TechDivision GmbH <info@techdivision.com>
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * @link      https://github.com/techdivision/TechDivision_PersistenceContainer
@@ -30,7 +30,7 @@ use TechDivision\EnterpriseBeans\TimerServiceInterface;
  *
  * @category  Library
  * @package   TechDivision_PersistenceContainer
- * @author    Johann Zelger<jz@techdivision.com>
+ * @author    Johann Zelger <jz@techdivision.com>
  * @copyright 2014 TechDivision GmbH <info@techdivision.com>
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * @link      https://github.com/techdivision/TechDivision_PersistenceContainer
@@ -41,8 +41,8 @@ class TimerService implements TimerServiceInterface
     /**
      * Create a calendar-based timer based on the input schedule expression.
      *
-     * @param \TechDivision\EnterpriseBeans\ScheduleExpression $schedule A schedule expression describing the timeouts for this timer.
-     * @param \TechDivision\EnterpriseBeans\TimerConfig $timerConfig Timer configuration.
+     * @param \TechDivision\EnterpriseBeans\ScheduleExpression $schedule    A schedule expression describing the timeouts for this timer.
+     * @param \TechDivision\EnterpriseBeans\TimerConfig        $timerConfig Timer configuration.
      *
      * @return \TechDivision\EnterpriseBeans\TimerInterface The newly created Timer.
      * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure.
@@ -56,12 +56,12 @@ class TimerService implements TimerServiceInterface
      * Create an interval timer whose first expiration occurs at a given point in time and
      * whose subsequent expirations occur after a specified interval.
      *
-     * @param int $initialExpiration The number of milliseconds that must elapse before the firsttimer expiration notification.
-     * @param int $intervalDuration The number of milliseconds that must elapse between timer
+     * @param int                                       $initialExpiration The number of milliseconds that must elapse before the firsttimer expiration notification.
+     * @param int                                       $intervalDuration  The number of milliseconds that must elapse between timer
      *      expiration notifications. Expiration notifications are scheduled relative to the time of the first expiration. If
      *      expiration is delayed(e.g. due to the interleaving of other method calls on the bean) two or more expiration notifications
      *      may occur in close succession to "catch up".
-     * @param \TechDivision\EnterpriseBeans\TimerConfig $timerConfig Timer configuration.
+     * @param \TechDivision\EnterpriseBeans\TimerConfig $timerConfig       Timer configuration.
      *
      * @return \TechDivision\EnterpriseBeans\TimerInterface The newly created Timer.
      * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure.
@@ -74,8 +74,7 @@ class TimerService implements TimerServiceInterface
     /**
      * Create a single-action timer that expires after a specified duration.
      *
-     * @param int $duration The number of milliseconds that must elapse before
-     *                                                               the timer expires.
+     * @param int                                       $duration    The number of milliseconds that must elapse before the timer expires.
      * @param \TechDivision\EnterpriseBeans\TimerConfig $timerConfig Timer configuration.
      *
      * @return \TechDivision\EnterpriseBeans\TimerInterface The newly created Timer.

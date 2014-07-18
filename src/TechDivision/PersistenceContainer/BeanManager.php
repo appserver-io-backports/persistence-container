@@ -142,6 +142,8 @@ class BeanManager extends GenericStackable implements BeanContext
 
     /**
      * Registers the timers for message beans at startup
+     *
+     * @return void
      */
     protected function registerTimers()
     {
