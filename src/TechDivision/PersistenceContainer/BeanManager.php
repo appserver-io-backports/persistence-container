@@ -31,6 +31,7 @@ use TechDivision\Storage\StackableStorage;
 use TechDivision\PersistenceContainer\Utils\BeanUtils;
 use TechDivision\PersistenceContainerProtocol\BeanContext;
 use TechDivision\PersistenceContainerProtocol\RemoteMethod;
+use TechDivision\Application\Interfaces\ApplicationInterface;
 
 /**
  * The bean manager handles the message and session beans registered for the application.
@@ -92,16 +93,14 @@ class BeanManager extends GenericStackable implements BeanContext
      * Has been automatically invoked by the container after the application
      * instance has been created.
      *
-     * @return \TechDivision\ServletContainer\Application The connected application
+     * @param \TechDivision\Application\Interfaces\ApplicationInterface $application The application instance
+     *
+     * @return void
+     * @see \TechDivision\Application\Interfaces\ManagerInterface::initialize()
      */
-    public function initialize()
+    public function initialize(ApplicationInterface $application)
     {
-
-        // deploy the message queues
         $this->registerBeans();
-
-        // return the instance itself
-        return $this;
     }
 
     /**
@@ -346,5 +345,28 @@ class BeanManager extends GenericStackable implements BeanContext
     public function getIdentifier()
     {
         return BeanContext::IDENTIFIER;
+    }
+
+    /**
+     * Factory method that adds a initialized manager instance to the passed application.
+     *
+     * @param \TechDivision\Application\Interfaces\ApplicationInterface $application The application instance
+     *
+     * @return void
+     * @see \TechDivision\Application\Interfaces\ManagerInterface::get()
+     */
+    public static function get(ApplicationInterface $application)
+    {
+
+        // initialize the bean locator
+        $beanLocator = new BeanLocator();
+
+        // initialize the bean manager
+        $beanManager = new BeanManager();
+        $beanManager->injectWebappPath($application->getWebappPath());
+        $beanManager->injectResourceLocator($beanLocator);
+
+        // add the manager instance to the application
+        $application->addManager($beanManager);
     }
 }
