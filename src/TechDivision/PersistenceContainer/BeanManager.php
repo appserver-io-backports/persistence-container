@@ -26,7 +26,6 @@ namespace TechDivision\PersistenceContainer;
 use Herrera\Annotations\Tokens;
 use Herrera\Annotations\Tokenizer;
 use Herrera\Annotations\Convert\ToArray;
-use TechDivision\Application\Interfaces\ApplicationInterface;
 use TechDivision\ApplicationServer\Application;
 use TechDivision\Storage\GenericStackable;
 use TechDivision\Storage\StackableStorage;
