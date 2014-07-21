@@ -102,21 +102,28 @@ class BeanManager extends GenericStackable implements BeanContext
     public function initialize(ApplicationInterface $application)
     {
         // register beans in container
-        $this->registerBeans();
+        $this->registerBeans($application);
 
         // register timers
         $this->registerTimers();
     }
 
     /**
-     * Registers the message beans at startup
+     * Registers the message beans at startup.
+     *
+     * @param \TechDivision\Application\Interfaces\ApplicationInterface $application The application instance
      *
      * @return void
      */
-    protected function registerBeans()
+    protected function registerBeans(ApplicationInterface $application)
     {
         // build up META-INF directory var
         $metaInfDir = $this->getWebappPath() . DIRECTORY_SEPARATOR .'META-INF';
+
+        // check if we've found a valid directory
+        if (!is_dir($metaInfDir)) {
+            return;
+        }
 
         // check meta-inf classes or any other sub folder to pre init beans
         $phpFiles = new \RegexIterator(
@@ -132,7 +139,7 @@ class BeanManager extends GenericStackable implements BeanContext
             $className = str_replace('/', '\\', substr(preg_replace('/' . str_replace('/', '\/', $metaInfDir) . '\/[^\/]+\//', '', $phpFile), 0, -4));
             // try to lookup bean by reflection class
             try {
-                $this->getResourceLocator()->lookup($this, $className);
+                $this->getResourceLocator()->lookup($this, $className, null, array($application));
             } catch (\Exception $e) {
                 // if class can not be reflected continue with next class
                 continue;
