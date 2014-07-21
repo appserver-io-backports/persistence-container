@@ -43,7 +43,6 @@ use TechDivision\Connection\ConnectionResponseInterface;
  */
 class PersistenceContainerModule extends ServletEngine
 {
-
     /**
      * The unique module name in the web server context.
      *
@@ -119,11 +118,6 @@ class PersistenceContainerModule extends ServletEngine
             $servletRequest = new Request();
             $servletRequest->injectHttpRequest($request);
             $servletRequest->injectServerVars($requestContext->getServerVars());
-
-            // initialize the parts
-            foreach ($request->getParts() as $name => $part) {
-                $servletRequest->addPart(Part::fromHttpRequest($part));
-            }
 
             // set the body content if we can find one
             if ($request->getHeader(HttpProtocol::HEADER_CONTENT_LENGTH) > 0) {

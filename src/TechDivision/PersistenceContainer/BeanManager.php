@@ -26,6 +26,8 @@ namespace TechDivision\PersistenceContainer;
 use Herrera\Annotations\Tokens;
 use Herrera\Annotations\Tokenizer;
 use Herrera\Annotations\Convert\ToArray;
+use TechDivision\Application\Interfaces\ApplicationInterface;
+use TechDivision\ApplicationServer\Application;
 use TechDivision\Storage\GenericStackable;
 use TechDivision\Storage\StackableStorage;
 use TechDivision\PersistenceContainer\Utils\BeanUtils;
@@ -100,16 +102,53 @@ class BeanManager extends GenericStackable implements BeanContext
      */
     public function initialize(ApplicationInterface $application)
     {
+        // register beans in container
         $this->registerBeans();
+
+        // register timers
+        $this->registerTimers();
     }
 
     /**
-     * Registers the message beans.
+     * Registers the message beans at startup
      *
      * @return void
      */
     protected function registerBeans()
     {
+        // build up META-INF directory var
+        $metaInfDir = $this->getWebappPath() . DIRECTORY_SEPARATOR .'META-INF';
+
+        // check meta-inf classes or any other sub folder to pre init beans
+        $phpFiles = new \RegexIterator(
+            new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($metaInfDir)
+            ),
+            '/^(.+)\.php$/i'
+        );
+
+        // iterate all php files
+        foreach ($phpFiles as $phpFile) {
+            // check if it's a valid bean
+            $className = str_replace('/', '\\', substr(preg_replace('/' . str_replace('/', '\/', $metaInfDir) . '\/[^\/]+\//', '', $phpFile), 0, -4));
+            // try to lookup bean by reflection class
+            try {
+                $this->getResourceLocator()->lookup($this, $className);
+            } catch (\Exception $e) {
+                // if class can not be reflected continue with next class
+                continue;
+            }
+        }
+    }
+
+    /**
+     * Registers the timers for message beans at startup
+     *
+     * @return void
+     */
+    protected function registerTimers()
+    {
+
     }
 
     /**
@@ -125,7 +164,7 @@ class BeanManager extends GenericStackable implements BeanContext
     /**
      * Return the resource locator instance.
      *
-     * @return \TechDivision\MessageQueue\ResourceLocator The resource locator instance
+     * @return \TechDivision\PersistenceContainer\ResourceLocator The resource locator instance
      */
     public function getResourceLocator()
     {
@@ -194,22 +233,12 @@ class BeanManager extends GenericStackable implements BeanContext
                     break;
 
                 case BeanUtils::SINGLETON: // @Singleton
-
-                    // lock the container
-                    $this->beans->lock();
-
-                    // replace any existing bean in the container
-                    $this->setAttribute($reflectionObject->getName(), $instance);
-
-                    // unlock the container
-                    $this->beans->unlock();
-
-                    break;
-
                 case BeanUtils::STATELESS: // @Stateless
                 case BeanUtils::MESSAGEDRIVEN: // @MessageDriven
 
-                    // we do nothing here, because we have not state
+                    // add bean to container
+                    $this->setAttribute($reflectionObject->getName(), $instance);
+
                     break;
 
                 default: // this should never happen
