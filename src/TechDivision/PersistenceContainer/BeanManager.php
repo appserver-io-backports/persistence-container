@@ -26,13 +26,13 @@ namespace TechDivision\PersistenceContainer;
 use Herrera\Annotations\Tokens;
 use Herrera\Annotations\Tokenizer;
 use Herrera\Annotations\Convert\ToArray;
-use TechDivision\Application\Interfaces\ApplicationInterface;
 use TechDivision\ApplicationServer\Application;
 use TechDivision\Storage\GenericStackable;
 use TechDivision\Storage\StackableStorage;
 use TechDivision\PersistenceContainer\Utils\BeanUtils;
 use TechDivision\PersistenceContainerProtocol\BeanContext;
 use TechDivision\PersistenceContainerProtocol\RemoteMethod;
+use TechDivision\Application\Interfaces\ApplicationInterface;
 
 /**
  * The bean manager handles the message and session beans registered for the application.
@@ -94,29 +94,36 @@ class BeanManager extends GenericStackable implements BeanContext
      * Has been automatically invoked by the container after the application
      * instance has been created.
      *
-     * @return \TechDivision\Application\Interfaces\ApplicationInterface The connected application
+     * @param \TechDivision\Application\Interfaces\ApplicationInterface $application The application instance
+     *
+     * @return void
+     * @see \TechDivision\Application\Interfaces\ManagerInterface::initialize()
      */
-    public function initialize()
+    public function initialize(ApplicationInterface $application)
     {
         // register beans in container
-        $this->registerBeans();
+        $this->registerBeans($application);
 
         // register timers
         $this->registerTimers();
-
-        // return the instance itself
-        return $this;
     }
 
     /**
-     * Registers the message beans at startup
+     * Registers the message beans at startup.
+     *
+     * @param \TechDivision\Application\Interfaces\ApplicationInterface $application The application instance
      *
      * @return void
      */
-    protected function registerBeans()
+    protected function registerBeans(ApplicationInterface $application)
     {
         // build up META-INF directory var
         $metaInfDir = $this->getWebappPath() . DIRECTORY_SEPARATOR .'META-INF';
+
+        // check if we've found a valid directory
+        if (!is_dir($metaInfDir)) {
+            return;
+        }
 
         // check meta-inf classes or any other sub folder to pre init beans
         $phpFiles = new \RegexIterator(
@@ -132,7 +139,7 @@ class BeanManager extends GenericStackable implements BeanContext
             $className = str_replace('/', '\\', substr(preg_replace('/' . str_replace('/', '\/', $metaInfDir) . '\/[^\/]+\//', '', $phpFile), 0, -4));
             // try to lookup bean by reflection class
             try {
-                $this->getResourceLocator()->lookup($this, $className);
+                $this->getResourceLocator()->lookup($this, $className, null, array($application));
             } catch (\Exception $e) {
                 // if class can not be reflected continue with next class
                 continue;
@@ -373,5 +380,28 @@ class BeanManager extends GenericStackable implements BeanContext
     public function getIdentifier()
     {
         return BeanContext::IDENTIFIER;
+    }
+
+    /**
+     * Factory method that adds a initialized manager instance to the passed application.
+     *
+     * @param \TechDivision\Application\Interfaces\ApplicationInterface $application The application instance
+     *
+     * @return void
+     * @see \TechDivision\Application\Interfaces\ManagerInterface::get()
+     */
+    public static function get(ApplicationInterface $application)
+    {
+
+        // initialize the bean locator
+        $beanLocator = new BeanLocator();
+
+        // initialize the bean manager
+        $beanManager = new BeanManager();
+        $beanManager->injectWebappPath($application->getWebappPath());
+        $beanManager->injectResourceLocator($beanLocator);
+
+        // add the manager instance to the application
+        $application->addManager($beanManager);
     }
 }
