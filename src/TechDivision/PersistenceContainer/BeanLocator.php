@@ -63,7 +63,7 @@ class BeanLocator implements ResourceLocator
     }
 
     /**
-     * Run's a lookup for the session bean with the passed class name and
+     * Runs a lookup for the session bean with the passed class name and
      * session ID.
      *
      * If the passed class name is a session bean an instance

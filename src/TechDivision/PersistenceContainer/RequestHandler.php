@@ -144,6 +144,7 @@ class RequestHandler extends \Thread
             }
 
         } catch (\Exception $e) {
+            error_log($e->__toString());
             $servletResponse->appendBodyStream($e->__toString());
             $servletResponse->setStatusCode(500);
         }
