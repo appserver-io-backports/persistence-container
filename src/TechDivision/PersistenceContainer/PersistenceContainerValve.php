@@ -82,10 +82,8 @@ class PersistenceContainerValve implements Valve
             $beanManager->attach($instance, $sessionId);
 
         } catch (\Exception $e) {
-
-            error_log($e->__toString());
-
             // catch the exception and append it to the body stream
+            error_log($e->__toString());
             $servletResponse->setStatusCode(500);
             $servletResponse->appendBodyStream(RemoteMethodProtocol::pack($e));
 
