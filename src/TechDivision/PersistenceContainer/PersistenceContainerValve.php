@@ -70,6 +70,7 @@ class PersistenceContainerValve implements Valve
             // prepare method name and parameters and invoke method
             $methodName = $remoteMethod->getMethodName();
             $parameters = $remoteMethod->getParameters();
+            $sessionId = $remoteMethod->getSessionId();
 
             // invoke the remote method call on the local instance
             $response = call_user_func_array(array($instance, $methodName), $parameters);
@@ -81,6 +82,8 @@ class PersistenceContainerValve implements Valve
             $beanManager->attach($instance, $sessionId);
 
         } catch (\Exception $e) {
+
+            error_log($e->__toString());
 
             // catch the exception and append it to the body stream
             $servletResponse->setStatusCode(500);

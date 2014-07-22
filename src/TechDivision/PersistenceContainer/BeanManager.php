@@ -213,9 +213,6 @@ class BeanManager extends GenericStackable implements BeanContext
 
                 case BeanUtils::STATEFUL: // @Stateful
 
-                    // lock the container
-                    $this->beans->lock();
-
                     // check if we've a session-ID available
                     if ($sessionId == null) {
                         throw new \Exception("Can't find a session-ID to attach stateful session bean");
@@ -232,9 +229,6 @@ class BeanManager extends GenericStackable implements BeanContext
                     // store the bean back to the container
                     $session[$reflectionObject->getName()] = $instance;
                     $this->setAttribute($sessionId, $session);
-
-                    // unlock the container
-                    $this->beans->unlock();
 
                     break;
 
