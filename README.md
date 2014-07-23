@@ -134,7 +134,7 @@ $contextSession = $connection->createContextSession();
 // set the session ID of the actual request (necessary for SessionBeans declared as @Stateful)
 $contextSession->setSessionId('your-session-id');
 
-// create an return the proxy instance and call a method, invokeSomeMethod() in this example
+// create an return the proxy instance and call a method, raiseMe() in this example
 $proxyInstance = $contextSession->createInitialContext()->lookup('Namespace\Module\MyStatefulSessionBean');
 $proxyIntance->raiseMe();
 
