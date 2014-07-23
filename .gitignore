@@ -7,4 +7,5 @@
 /.idea
 /*.iml
 /vendor
-/composer.lock
+composer.lock
+composer.phar
