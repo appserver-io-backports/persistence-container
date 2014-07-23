@@ -1,23 +1,26 @@
 {
-    "name": "techdivision/persistencecontainer",
-    "description": "Persistence container implementation for thread based PHP ApplicationServer.",
-    "homepage": "https://github.com/techdivision/TechDivision_PersistenceContainer",
-    "license": [ "OSL-3.0" ],
-    "require": {
-        "php": ">=5.4.0",
-        "doctrine/orm": "2.4.*",
-        "herrera-io/annotations": "1.0.*",
-        "techdivision/appserver": "0.8.*",
-        "techdivision/persistencecontainerprotocol": "0.2.*"
-    },
-    "autoload": {
-        "psr-0": {
-            "TechDivision\\PersistenceContainer": ["src/", "tests/"]      
-        }
-    },
-    "config":{
-        "github-oauth":{
-            "github.com":"604a3b5943228e434a5b52c2ba3cf72286d30db9"
-        }
-    }
+	"name" : "techdivision/persistencecontainer",
+	"description" : "Persistence container implementation for thread based PHP ApplicationServer.",
+	"homepage" : "https://github.com/techdivision/TechDivision_PersistenceContainer",
+	"license" : "OSL-3.0",
+	"require" : {
+		"php" : ">=5.4.0",
+		"doctrine/orm" : "2.4.*",
+		"herrera-io/annotations" : "1.0.*",
+		"techdivision/appserver" : ">=0.8",
+		"techdivision/persistencecontainerprotocol" : "0.2.*"
+	},
+	"autoload" : {
+		"psr-0" : {
+			"TechDivision\\PersistenceContainer" : [
+				"src/",
+				"tests/"
+			]
+		}
+	},
+	"config" : {
+		"github-oauth" : {
+			"github.com" : "604a3b5943228e434a5b52c2ba3cf72286d30db9"
+		}
+	}
 }

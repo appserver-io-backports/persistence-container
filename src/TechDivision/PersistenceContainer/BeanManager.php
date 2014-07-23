@@ -51,8 +51,6 @@ class BeanManager extends GenericStackable implements BeanContext
 
     /**
      * Initializes the bean manager.
-     *
-     * @return void
      */
     public function __construct()
     {

@@ -1,4 +1,20 @@
+Version 0.7.2
+
+Bugfixes
+
+* None
+
+Features
+
+* Set composer dependency for techdivision/appserver to >=0.8
+
 Version 0.7.1
+
+Bugfixes
+
+* None
+
+Features
 
 * Add REAMDE.md with short description and installation/configuration instructions
 * Remove locking/unlocking for beans stackable from BeanManager::attach() method to avoid deadlocks
