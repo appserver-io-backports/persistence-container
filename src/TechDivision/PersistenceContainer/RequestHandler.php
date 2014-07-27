@@ -23,6 +23,7 @@
 namespace TechDivision\PersistenceContainer;
 
 use TechDivision\Http\HttpResponseStates;
+use TechDivision\Server\Dictionaries\ServerVars;
 use TechDivision\Servlet\Http\HttpServletRequest;
 use TechDivision\Servlet\Http\HttpServletResponse;
 use TechDivision\Application\Interfaces\ApplicationInterface;
@@ -128,7 +129,7 @@ class RequestHandler extends \Thread
             $servletRequest->setContextPath($contextPath = '/' . $application->getName());
 
             // prepare the path information depending if we're in a vhost or not
-            if ($application->isVhostOf($host) === false) {
+            if ($application->isVhostOf($servletRequest->getServerVar(ServerVars::SERVER_NAME)) === false) {
                 $servletRequest->setServletPath(str_replace($contextPath, '', $servletRequest->getServletPath()));
             }
 
@@ -144,7 +145,6 @@ class RequestHandler extends \Thread
             }
 
         } catch (\Exception $e) {
-            error_log($e->__toString());
             $servletResponse->appendBodyStream($e->__toString());
             $servletResponse->setStatusCode(500);
         }

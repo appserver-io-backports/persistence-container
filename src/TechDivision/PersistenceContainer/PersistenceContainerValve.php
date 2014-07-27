@@ -81,15 +81,9 @@ class PersistenceContainerValve implements Valve
             // reattach the bean instance in the container and unlock it
             $beanManager->attach($instance, $sessionId);
 
-        } catch (\Exception $e) {
-            // catch the exception and append it to the body stream
-            error_log($e->__toString());
-            $servletResponse->setStatusCode(500);
+        } catch (\Exception $e) { // catch the exception and append it to the body stream
             $servletResponse->appendBodyStream(RemoteMethodProtocol::pack($e));
-
-        } finally {
-
-            // dispatch this request, because we have finished processing it
+        } finally { // dispatch this request, because we have finished processing it
             $servletRequest->setDispatched(true);
         }
     }
