@@ -1,3 +1,16 @@
+# Version 0.7.4
+
+## Bugfixes
+
+* Remove HTTP status code from PersistenceContainerValve when catching an application exception to allow pass exception as body content
+* Add ModuleException use statuement to PersistenceContainerModule
+* Change composer dependency from appserver to servletengine
+* Minor bugfixes to optimize PHP mess detector analysis
+
+## Features
+
+* None
+
 # Version 0.7.3
 
 ## Bugfixes

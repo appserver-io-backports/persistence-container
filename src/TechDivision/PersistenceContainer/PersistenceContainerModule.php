@@ -20,6 +20,7 @@ use TechDivision\Http\HttpResponseStates;
 use TechDivision\Storage\GenericStackable;
 use TechDivision\Server\Dictionaries\ModuleHooks;
 use TechDivision\Server\Dictionaries\ServerVars;
+use TechDivision\Server\Exceptions\ModuleException;
 use TechDivision\Server\Interfaces\RequestContextInterface;
 use TechDivision\Servlet\Http\HttpServletRequest;
 use TechDivision\ServletEngine\Http\Request;
@@ -187,7 +188,7 @@ class PersistenceContainerModule extends ServletEngine
     {
 
         // explode host and port from the host header
-        list ($host, $port) = explode(':', $servletRequest->getHeader(HttpProtocol::HEADER_HOST));
+        list ($host, ) = explode(':', $servletRequest->getHeader(HttpProtocol::HEADER_HOST));
 
         // prepare the request URL we want to match
         $url =  $host . $servletRequest->getUri();
@@ -206,6 +207,6 @@ class PersistenceContainerModule extends ServletEngine
         }
 
         // if not throw a bad request exception
-        throw new BadRequestException(sprintf('Can\'t find application for URI %s', $uri));
+        throw new BadRequestException(sprintf('Can\'t find application for URL %s', $url));
     }
 }
