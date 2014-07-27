@@ -170,8 +170,6 @@ class PersistenceContainerModule extends ServletEngine
             // set response state to be dispatched after this without calling other modules process
             $response->setState(HttpResponseStates::DISPATCH);
 
-            error_log(print_r($response, true));
-
         } catch (ModuleException $me) {
             throw $me;
         } catch (\Exception $e) {
