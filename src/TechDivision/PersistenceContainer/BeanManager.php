@@ -26,7 +26,6 @@ namespace TechDivision\PersistenceContainer;
 use Herrera\Annotations\Tokens;
 use Herrera\Annotations\Tokenizer;
 use Herrera\Annotations\Convert\ToArray;
-use TechDivision\ApplicationServer\Application;
 use TechDivision\Storage\GenericStackable;
 use TechDivision\Storage\StackableStorage;
 use TechDivision\PersistenceContainer\Utils\BeanUtils;
@@ -119,27 +118,30 @@ class BeanManager extends GenericStackable implements BeanContext
         $metaInfDir = $this->getWebappPath() . DIRECTORY_SEPARATOR .'META-INF';
 
         // check if we've found a valid directory
-        if (!is_dir($metaInfDir)) {
+        if (is_dir($metaInfDir) === false) {
             return;
         }
 
         // check meta-inf classes or any other sub folder to pre init beans
-        $phpFiles = new \RegexIterator(
-            new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($metaInfDir)
-            ),
-            '/^(.+)\.php$/i'
-        );
+        $recursiveIterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($metaInfDir));
+        $phpFiles = new \RegexIterator($recursiveIterator, '/^(.+)\.php$/i');
 
         // iterate all php files
         foreach ($phpFiles as $phpFile) {
-            // check if it's a valid bean
-            $className = str_replace('/', '\\', substr(preg_replace('/' . str_replace('/', '\/', $metaInfDir) . '\/[^\/]+\//', '', $phpFile), 0, -4));
-            // try to lookup bean by reflection class
+
             try {
+
+                // cut off the META-INF directory and replace OS specific directory separators
+                $relativePathToPhpFile = str_replace(DIRECTORY_SEPARATOR, '\\', str_replace($metaInfDir, '', $phpFile));
+
+                // now cut off the first directory, that'll be '/classes' by default
+                $pregResult = preg_replace('%^(\\\\*)[^\\\\]+%', '', $relativePathToPhpFile);
+                $className = substr($pregResult, 0, -4);
+
+                // try to lookup bean by reflection class
                 $this->getResourceLocator()->lookup($this, $className, null, array($application));
-            } catch (\Exception $e) {
-                // if class can not be reflected continue with next class
+
+            } catch (\Exception $e) { // if class can not be reflected continue with next class
                 continue;
             }
         }
