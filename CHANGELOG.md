@@ -1,3 +1,13 @@
+# Version 0.7.5
+
+## Bugfixes
+
+* Make BeanManager::registerBeans() method Windows compliant
+
+## Features
+
+* None
+
 # Version 0.7.4
 
 ## Bugfixes
