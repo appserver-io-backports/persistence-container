@@ -115,6 +115,9 @@ class RequestHandler extends \Thread
 
         try {
 
+            // register shutdown handler
+            register_shutdown_function(array(&$this, "shutdown"));
+
             // reset request/response instance
             $application = $this->application;
 
@@ -147,6 +150,20 @@ class RequestHandler extends \Thread
         } catch (\Exception $e) {
             $servletResponse->appendBodyStream($e->__toString());
             $servletResponse->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Does shutdown logic for request handler if something went wrong and produces
+     * a fatal error for example.
+     *
+     * @return void
+     */
+    public function shutdown()
+    {
+        $lastError = error_get_last();
+        if ($lastError['type'] === E_ERROR || $lastError['type'] === E_USER_ERROR) {
+            error_log($lastError['message']);
         }
     }
 }
