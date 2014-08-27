@@ -233,12 +233,16 @@ class BeanManager extends GenericStackable implements BeanContext
                     break;
 
                 case BeanUtils::SINGLETON: // @Singleton
+
+                    // re-attach the bean to the container
+                    $this->setAttribute($reflectionObject->getName(), $instance);
+
+                    break;
+
                 case BeanUtils::STATELESS: // @Stateless
                 case BeanUtils::MESSAGEDRIVEN: // @MessageDriven
 
-                    // add bean to container
-                    $this->setAttribute($reflectionObject->getName(), $instance);
-
+                    // do nothing, because these beans doesn't have a state
                     break;
 
                 default: // this should never happen
