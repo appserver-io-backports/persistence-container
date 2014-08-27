@@ -16,7 +16,7 @@
 		"herrera-io/annotations" : "1.0.*",
 		"techdivision/persistencecontainerprotocol" : "0.2.*",
 		"techdivision/servletengine" : ">=0.7",
-		"techdivision/enterprisebeans": "dev-master"
+		"techdivision/enterprisebeans" : "0.1.*"
 	},
 	"require-dev" : {
 		"phpunit/phpunit" : "3.7.*",
