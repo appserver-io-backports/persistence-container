@@ -1,3 +1,13 @@
+# Version 0.7.8
+
+## Bugfixes
+
+* Only re-attach beans of type @Stateful or @Singleton to container, ignore beans of type @Stateless or @MessageDriven
+
+## Features
+
+* None
+
 # Version 0.7.7
 
 ## Bugfixes
