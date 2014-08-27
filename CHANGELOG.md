@@ -1,4 +1,4 @@
-# Version 0.7.8
+# Version 0.7.9
 
 ## Bugfixes
 
@@ -7,6 +7,16 @@
 ## Features
 
 * None
+
+# Version 0.7.8
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Switch to TechDivision_EnterpriseBeans version 0.1.0
 
 # Version 0.7.7
 
