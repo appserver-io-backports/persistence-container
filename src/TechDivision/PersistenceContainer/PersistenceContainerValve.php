@@ -83,8 +83,9 @@ class PersistenceContainerValve implements Valve
 
         } catch (\Exception $e) { // catch the exception and append it to the body stream
             $servletResponse->appendBodyStream(RemoteMethodProtocol::pack($e));
-        } finally { // dispatch this request, because we have finished processing it
-            $servletRequest->setDispatched(true);
         }
+
+        // finally dispatch this request, because we have finished processing it
+        $servletRequest->setDispatched(true);
     }
 }
