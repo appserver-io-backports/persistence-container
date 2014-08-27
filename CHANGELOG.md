@@ -1,3 +1,13 @@
+# Version 0.7.7
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Use default RequestHandler class of ServletEngine instead of own implementation
+
 # Version 0.7.6
 
 ## Bugfixes
