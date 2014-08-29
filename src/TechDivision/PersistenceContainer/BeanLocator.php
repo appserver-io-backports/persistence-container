@@ -102,13 +102,18 @@ class BeanLocator implements ResourceLocator
                 return $beanManager->newInstance($className, $args);
 
             case BeanUtils::SINGLETON: // @Singleton
-            case BeanUtils::STATELESS: // @Stateless
-            case BeanUtils::MESSAGEDRIVEN: // @MessageDriven
 
-                // check if an instance is available
+                // first check if an instance is available
                 if ($beanManager->getAttribute($className)) {
                     return $beanManager->getAttribute($className);
                 }
+
+                // if not create a new instance and return it
+                return $beanManager->newInstance($className, $args);
+                break;
+
+            case BeanUtils::STATELESS: // @Stateless
+            case BeanUtils::MESSAGEDRIVEN: // @MessageDriven
 
                 // if not create a new instance and return it
                 return $beanManager->newInstance($className, $args);

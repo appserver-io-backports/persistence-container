@@ -98,11 +98,9 @@ class BeanManager extends GenericStackable implements BeanContext
      */
     public function initialize(ApplicationInterface $application)
     {
-        // register beans in container
+        // register beans + timers
         $this->registerBeans($application);
-
-        // register timers
-        $this->registerTimers();
+        $this->registerTimers($application);
     }
 
     /**
@@ -138,8 +136,14 @@ class BeanManager extends GenericStackable implements BeanContext
                 $pregResult = preg_replace('%^(\\\\*)[^\\\\]+%', '', $relativePathToPhpFile);
                 $className = substr($pregResult, 0, -4);
 
-                // try to lookup bean by reflection class
-                $this->getResourceLocator()->lookup($this, $className, null, array($application));
+                // we need a reflection class to read the annotations
+                $reflectionClass = new \ReflectionClass($className);
+
+                // if we found a bean with @Singleton + @Startup annotation
+                if ($this->hasBeanAnnotation($reflectionClass, BeanUtils::SINGLETON) &&
+                    $this->hasBeanAnnotation($reflectionClass, BeanUtils::STARTUP)) { // instanciate the bean
+                    $this->getResourceLocator()->lookup($this, $className, null, array($application));
+                }
 
             } catch (\Exception $e) { // if class can not be reflected continue with next class
                 continue;
@@ -150,9 +154,12 @@ class BeanManager extends GenericStackable implements BeanContext
     /**
      * Registers the timers for message beans at startup
      *
+     * @param \TechDivision\Application\Interfaces\ApplicationInterface $application The application instance
+     *
      * @return void
+     * @todo Still to implement
      */
-    protected function registerTimers()
+    protected function registerTimers(ApplicationInterface $application)
     {
 
     }
@@ -242,7 +249,15 @@ class BeanManager extends GenericStackable implements BeanContext
                 case BeanUtils::STATELESS: // @Stateless
                 case BeanUtils::MESSAGEDRIVEN: // @MessageDriven
 
-                    // do nothing, because these beans doesn't have a state
+                    // we've to check for a @PreDestroy annotation
+                    foreach ($reflectionObject->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
+
+                        // if we found a @PreDestroy annotation, invoke the method
+                        if (BeanUtils::PRE_DESTROY === $this->getMethodAnnotation($reflectionMethod)) {
+                            $reflectionMethod->invoke($instance); // method MUST has no parameters
+                        }
+                    }
+
                     break;
 
                 default: // this should never happen
@@ -255,6 +270,42 @@ class BeanManager extends GenericStackable implements BeanContext
             $this->unlock();
             throw $e;
         }
+    }
+
+
+    /**
+     * Returns TRUE if the class has the passed annotation, else FALSE.
+     *
+     * @param \ReflectionClass $reflectionClass The class to return the annotation for
+     * @param string           $annotation      The annotation to check for
+     *
+     * @return boolean TRUE if the bean has the passed annotation, else FALSE
+     */
+    public function hasBeanAnnotation(\ReflectionClass $reflectionClass, $annotation)
+    {
+
+        // initialize the annotation tokenizer
+        $tokenizer = new Tokenizer();
+        $tokenizer->ignore(array('author', 'package', 'license', 'copyright'));
+        $aliases = array();
+
+        // parse the doc block
+        $parsed = $tokenizer->parse($reflectionClass->getDocComment(), $aliases);
+
+        // convert tokens and return one
+        $tokens = new Tokens($parsed);
+        $toArray = new ToArray();
+
+        // iterate over the tokens
+        foreach ($toArray->convert($tokens) as $token) {
+            $tokeName = strtolower($token->name);
+            if ($tokeName === $annotation) {
+                return true;
+            }
+        }
+
+        // return FALSE if bean annotation has not been found
+        return false;
     }
 
     /**
@@ -313,7 +364,62 @@ class BeanManager extends GenericStackable implements BeanContext
         }
 
         // throw an exception if the requested class
-        throw new \Exception(sprintf("Missing enterprise bean annotation for %s", $reflectionClass->getName()));
+        throw new \Exception(sprintf('Missing enterprise bean annotation for %s', $reflectionClass->getName()));
+    }
+
+    /**
+     * Returns the method annotation for the passed reflection method, that can be
+     * one of PostConstruct or PreDestroy.
+     *
+     * @param \ReflectionMethod $reflectionMethod The method to return the annotation for
+     *
+     * @return string|null The found method annotation
+     */
+    public function getMethodAnnotation(\ReflectionMethod $reflectionMethod)
+    {
+
+        // load the method name to get the annotation for
+        $methodName = $reflectionMethod->getName();
+
+        // check if an array with the message types has already been registered
+        $methodTypes = $this->getAttribute('methodTypes');
+        if (is_array($methodTypes)) {
+            if (array_key_exists($methodName, $methodTypes)) {
+                return $methodTypes[$methodName];
+            }
+        } else {
+            $methodTypes = array();
+        }
+
+        // initialize the annotation tokenizer
+        $tokenizer = new Tokenizer();
+        $tokenizer->ignore(array('param', 'return', 'throws', 'see', 'link'));
+        $aliases = array();
+
+        // parse the doc block
+        $parsed = $tokenizer->parse($reflectionMethod->getDocComment(), $aliases);
+
+        // convert tokens and return one
+        $tokens = new Tokens($parsed);
+        $toArray = new ToArray();
+
+        // defines the available method annotations
+        $methodAnnotations = array(
+            BeanUtils::POST_CONSTRUCT,
+            BeanUtils::PRE_DESTROY,
+            BeanUtils::PRE_PASSIVATE,
+            BeanUtils::POST_ACTIVATE
+        );
+
+        // iterate over the tokens
+        foreach ($toArray->convert($tokens) as $token) {
+            $tokeName = strtolower($token->name);
+            if (in_array($tokeName, $methodAnnotations)) {
+                $methodTypes[$methodName] = $tokeName;
+                $this->setAttribute('methodTypes', $methodTypes);
+                return $tokeName;
+            }
+        }
     }
 
     /**
@@ -364,9 +470,22 @@ class BeanManager extends GenericStackable implements BeanContext
      */
     public function newInstance($className, array $args = array())
     {
+
         // create and return a new instance
         $reflectionClass = $this->newReflectionClass($className);
-        return $reflectionClass->newInstanceArgs($args);
+        $instance = $reflectionClass->newInstanceArgs($args);
+
+        // we've to check for a @PostConstruct annotations
+        foreach ($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
+
+            // if we found a @PostConstruct annotation, invoke the method
+            if (BeanUtils::POST_CONSTRUCT === $this->getMethodAnnotation($reflectionMethod)) {
+                $reflectionMethod->invoke($instance); // method MUST has no parameters
+            }
+        }
+
+        // return the instance here
+        return $instance;
     }
 
     /**

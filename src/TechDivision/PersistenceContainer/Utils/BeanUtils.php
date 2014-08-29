@@ -46,28 +46,63 @@ class BeanUtils
     /**
      * The key for a stateful session bean.
      *
-     * @return string
+     * @var string
      */
     const STATEFUL = 'stateful';
 
     /**
      * The key for a stateless session bean.
      *
-     * @return string
+     * @var string
      */
     const STATELESS = 'stateless';
 
     /**
      * The key for a singleton session bean.
      *
-     * @return string
+     * @var string
      */
     const SINGLETON = 'singleton';
 
     /**
      * The key for a message bean.
      *
-     * @return string
+     * @var string
      */
     const MESSAGEDRIVEN = 'messagedriven';
+
+    /**
+     * The key for a singleton session bean that has to be started after deployment.
+     *
+     * @var string
+     */
+    const STARTUP = 'startup';
+
+    /**
+     * The annotation for a method that has to be invoked after the instance has been created.
+     *
+     * @var string
+     */
+    const POST_CONSTRUCT = 'postconstruct';
+
+    /**
+     * The annotation for a method that has to be invoked before the instance will be destroyed
+     *
+     * @var string
+     */
+    const PRE_DESTROY = 'predestroy';
+
+    /**
+     * The annotation for a method that has to be invoked before the instance (can only be a stateful session bean) will be activated.
+     *
+     * @var string
+     */
+    const POST_ACTIVATE = 'postactivate';
+
+    /**
+     * The annotation for a method that has to be invoked before the instance (can only be a stateful session bean) will be passivated.
+     *
+     * @var string
+     */
+    const PRE_PASSIVATE = 'prepassivate';
 }
