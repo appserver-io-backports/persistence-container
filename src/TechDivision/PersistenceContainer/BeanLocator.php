@@ -84,28 +84,28 @@ class BeanLocator implements ResourceLocator
         $reflectionClass = $beanManager->newReflectionClass($className);
 
         // check what kind of bean we have
-        switch ($beanType = $beanManager->getBeanAnnotation($reflectionClass)) {
+        switch ($beanType = $beanManager->getBeanUtils()->getBeanAnnotation($reflectionClass)) {
 
             case BeanUtils::STATEFUL: // @Stateful
 
-                // load the session's from the initial context
-                $session = $beanManager->getAttribute($sessionId);
-
-                // if an instance exists, load and return it
-                if (is_array($session)) {
-                    if (array_key_exists($className, $session)) {
-                        return $session[$className];
-                    }
+                // try to load the stateful session bean from the bean manager
+                if ($instance = $beanManager->lookupStatefulSessionBean($sessionId, $className)) {
+                    return $instance;
                 }
 
-                // if not, initialize a new instance, add it to the container and return it
+                // if not create a new instance and return it
                 return $beanManager->newInstance($className, $args);
 
             case BeanUtils::SINGLETON: // @Singleton
 
-                // first check if an instance is available
-                if ($beanManager->getAttribute($className)) {
-                    return $beanManager->getAttribute($className);
+                // try to load the singleton session bean from the bean manager
+                if ($instance = $beanManager->lookupSingletonSessionBean($className)) {
+                    return $instance;
+                }
+
+                // singleton session beans MUST extends \Stackable
+                if (is_subclass_of($className, '\Stackable') === false) {
+                    throw new \Exception(sprintf('Singleton session bean %s MUST extend \Stackable', $className));
                 }
 
                 // if not create a new instance and return it
@@ -121,7 +121,7 @@ class BeanLocator implements ResourceLocator
 
             default: // this should never happen
 
-                throw new InvalidBeanTypeException("Try to lookup invalid bean type '$beanType'");
+                throw new InvalidBeanTypeException(sprintf('Try to lookup invalid bean type \'%s\'', $beanType));
                 break;
         }
     }

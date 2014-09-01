@@ -15,7 +15,9 @@
 
 namespace TechDivision\PersistenceContainer;
 
+use TechDivision\Storage\GenericStackable;
 use TechDivision\ServletEngine\ServletEngine;
+use TechDivision\Server\Interfaces\ServerContextInterface;
 use TechDivision\PersistenceContainer\PersistenceContainerValve;
 
 /**
@@ -38,6 +40,25 @@ class PersistenceContainerModule extends ServletEngine
     const MODULE_NAME = 'persistence-container';
 
     /**
+     * Initialize the module.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+
+        // call parent constructor
+        parent::__construct();
+
+        /**
+         * The initialized garbage collector instances.
+         *
+         * @var \TechDivision\Storage\GenericStackable
+         */
+        $this->garbageCollectors = new GenericStackable();
+    }
+
+    /**
      * Returns the module name.
      *
      * @return string The module name
@@ -55,5 +76,25 @@ class PersistenceContainerModule extends ServletEngine
     public function initValves()
     {
         $this->valves[] = new PersistenceContainerValve();
+    }
+
+    /**
+     * Initializes the module.
+     *
+     * @param \TechDivision\Server\Interfaces\ServerContextInterface $serverContext The servers context instance
+     *
+     * @return void
+     * @throws \TechDivision\Server\Exceptions\ModuleException
+     */
+    public function init(ServerContextInterface $serverContext)
+    {
+
+        // call parent init() method
+        parent::init($serverContext);
+
+        // add a garbage collector for each application
+        foreach ($this->getApplications() as $application) {
+            $this->garbageCollectors[] = new StandardGarbageCollector($application);
+        }
     }
 }

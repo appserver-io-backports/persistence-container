@@ -6,6 +6,8 @@
 
 ## Features
 
+* Switch to new ClassLoader + ManagerInterface
+* Add configuration parameters to manager configuration
 * Implement annotations @PostConstruct and @PreDestroy for session and message beans
 * Implement @Startup annotation for singleton session beans
 
