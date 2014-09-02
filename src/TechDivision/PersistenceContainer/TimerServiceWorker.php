@@ -1,7 +1,7 @@
 <?php
 
 /**
- * TechDivision\PersistenceContainer\StandardGarbageCollector
+ * TechDivision\PersistenceContainer\TimerServiceWorker
  *
  * NOTICE OF LICENSE
  *
@@ -22,7 +22,8 @@
 
 namespace TechDivision\PersistenceContainer;
 
-use TechDivision\Storage\StackableStorage;
+use TechDivision\Storage\GenericStackable;
+use TechDivision\EnterpriseBeans\TimerInterface;
 use TechDivision\PersistenceContainerProtocol\BeanContext;
 use TechDivision\Application\Interfaces\ApplicationInterface;
 
@@ -37,7 +38,7 @@ use TechDivision\Application\Interfaces\ApplicationInterface;
  * @link      https://github.com/techdivision/TechDivision_PersistenceContainer
  * @link      http://www.appserver.io
  */
-class StandardGarbageCollector extends \Thread
+class TimerServiceWorker extends \Thread
 {
 
     /**
@@ -46,6 +47,13 @@ class StandardGarbageCollector extends \Thread
      * @var \TechDivision\ApplicationServer\Interfaces\ApplicationInterface
      */
     protected $application;
+
+    /**
+     * Contains the registered timers.
+     *
+     * @var \TechDivision\Storage\GenericStackable
+     */
+    protected $timersRegistered;
 
     /**
      * Initializes the queue worker with the application and the storage it should work on.
@@ -57,6 +65,9 @@ class StandardGarbageCollector extends \Thread
 
         // bind the gc to the application
         $this->application = $application;
+
+        // a collection with the
+        $this->timersRegistered = new GenericStackable();
 
         // start the worker
         $this->start();
@@ -70,36 +81,27 @@ class StandardGarbageCollector extends \Thread
     public function run()
     {
 
-        // create a local instance of appication and storage
+        // create a local instance of appication and the registered timers
         $application = $this->application;
+        $timersRegistered = $this->timersRegistered;
 
         // register the class loader again, because each thread has its own context
         $application->registerClassLoaders();
 
-        while (true) {
+        // we need the bean manager and the timer service to handle the timers
+        if ($timerService = $application->getManager(TimerServiceContext::IDENTIFIER)) {
 
-            // wait one second
-            $this->wait(1000000);
+            while (true) { // check for new timers
 
-            // we need the bean manager that handles all the beans
-            $beanManager = $application->getManager(BeanContext::IDENTIFIER);
-
-            // iterate over the applications sessions with stateful session beans
-            foreach ($beanManager->getStatefulSessionBeans() as $sessionId => $sessions) {
-
-                if ($sessions instanceof StatefulSessionBeanMap) { // if we've a map with stateful session beans
-
-                    // initialize the timestamp with the actual time
-                    $actualTime = time();
-
-                    // check the lifetime of the stateful session beans
-                    foreach ($sessions->getLifetime() as $className => $lifetime) {
-
-                        if ($lifetime < $actualTime) { // if the stateful session bean has timed out, remove it
-                            $beanManager->removeStatefulSessionBean($sessionId, $className);
-                        }
+                // iterate over the timers and start a worker for each of them
+                foreach ($timerService->getAllTimers() as $uuid => $timer) {
+                    if (array_key_exists($uuid, $timersRegistered) === false && $timer instanceof TimerInterface) {
+                        $this->registeredTimers[$uuid] = new TimerWorker($application, $timer);
                     }
                 }
+
+                // wait one second
+                $this->wait(1000000);
             }
         }
     }

@@ -1,3 +1,13 @@
+# Version 0.7.11
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Issue #185: Add basic timer service functionality
+
 # Version 0.7.10
 
 ## Bugfixes

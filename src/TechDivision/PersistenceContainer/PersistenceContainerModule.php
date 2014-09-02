@@ -56,6 +56,13 @@ class PersistenceContainerModule extends ServletEngine
          * @var \TechDivision\Storage\GenericStackable
          */
         $this->garbageCollectors = new GenericStackable();
+
+        /**
+         * The initialized timer service worker instances.
+         *
+         * @var \TechDivision\Storage\GenericStackable
+         */
+        $this->timerServiceWorker = new GenericStackable();
     }
 
     /**
@@ -92,9 +99,10 @@ class PersistenceContainerModule extends ServletEngine
         // call parent init() method
         parent::init($serverContext);
 
-        // add a garbage collector for each application
+        // add a garbage collector and timer service workers for each application
         foreach ($this->getApplications() as $application) {
             $this->garbageCollectors[] = new StandardGarbageCollector($application);
+            $this->timerServiceWorkers[] = new TimerServiceWorker($application);
         }
     }
 }

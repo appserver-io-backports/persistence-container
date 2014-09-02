@@ -22,6 +22,7 @@
 namespace TechDivision\PersistenceContainer;
 
 use TechDivision\EnterpriseBeans\TimerInterface;
+use TechDivision\EnterpriseBeans\ScheduleExpression;
 
 /**
  * Class Timer
@@ -36,6 +37,66 @@ use TechDivision\EnterpriseBeans\TimerInterface;
  */
 class Timer implements TimerInterface
 {
+
+    /**
+     * The schedule expression corresponding to this timer.
+     *
+     * @var \TechDivision\EnterpriseBeans\ScheduleExpression
+     */
+    protected $schedule;
+
+    /**
+     * The Serializable object that was passed in at timer creation.
+     *
+     * @var \Serializable
+     */
+    protected $info;
+
+    /**
+     * TRUE if this timer has persistent guarantees.
+     *
+     * @var boolean
+     */
+    protected $persistent = true;
+
+    /**
+     * Sets the schedule expression corresponding to this timer.
+     *
+     * @return \TechDivision\EnterpriseBeans\ScheduleExpression
+     *
+     * @return void
+     * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure.
+     */
+    public function setSchedule(ScheduleExpression $schedule)
+    {
+        // $this->schedule = $schedule;
+    }
+
+    /**
+     * Marks the timer to has persistent guarantees.
+     *
+     * @param boolean $persistent TRUE if the timer has persistent guarantees
+     *
+     * @return void
+     */
+    public function setPersistent($persistent)
+    {
+        $this->persistent = $persistent;
+    }
+
+    /**
+     * Sets the information associated with the timer at the time of creation.
+     *
+     * @param \Serializable $info The Serializable object that was passed in at timer creation.
+     *
+     * @return void
+     * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure.
+     **/
+    public function setInfo(\Serializable $info)
+    {
+        $this->info = $info;
+    }
+
     /**
      * Cause the timer and all its associated expiration notifications to be canceled.
      *
@@ -55,7 +116,7 @@ class Timer implements TimerInterface
      **/
     public function getTimeRemaining()
     {
-        // TODO: Implement getTimeRemaining() method.
+        return 10000000;
     }
 
     /**
@@ -66,7 +127,11 @@ class Timer implements TimerInterface
      **/
     public function getNextTimeout()
     {
-        // TODO: Implement getNextTimeout() method.
+        /*
+        $nextTimeout = new \DateTime();
+        $nextTimeout->sub(\DateInterval::createFromDateString('1 seconds'));
+        return $nextTimeout;
+        */
     }
 
     /**
@@ -78,7 +143,7 @@ class Timer implements TimerInterface
      **/
     public function getInfo()
     {
-        // TODO: Implement getInfo() method.
+        return $this->info;
     }
 
     /**
@@ -101,7 +166,7 @@ class Timer implements TimerInterface
      */
     public function getSchedule()
     {
-        // TODO: Implement getSchedule() method.
+        return $this->schedule;
     }
 
     /**
@@ -112,7 +177,7 @@ class Timer implements TimerInterface
      */
     public function isCalendarTimer()
     {
-        // TODO: Implement isCalendarTimer() method.
+        return isset($this->schedule);
     }
 
     /**
@@ -123,6 +188,6 @@ class Timer implements TimerInterface
      */
     public function isPersistent()
     {
-        // TODO: Implement isPersistent() method.
+        return $this->persistent;
     }
 }

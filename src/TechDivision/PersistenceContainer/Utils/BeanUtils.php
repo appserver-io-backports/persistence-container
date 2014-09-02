@@ -27,6 +27,10 @@ use Herrera\Annotations\Tokenizer;
 use Herrera\Annotations\Convert\ToArray;
 use TechDivision\Context\Context;
 use TechDivision\Storage\GenericStackable;
+use TechDivision\EnterpriseBeans\TimerConfig;
+use TechDivision\EnterpriseBeans\ScheduleExpression;
+use TechDivision\PersistenceContainer\LocalMethodCall;
+use TechDivision\PersistenceContainer\Annotations\Schedule;
 
 /**
  * Utility class with some bean utilities.
@@ -92,6 +96,13 @@ class BeanUtils extends GenericStackable implements Context
     const PRE_DESTROY = 'predestroy';
 
     /**
+     * The annotation for method, a timer has to be registered for.
+     *
+     * @var string
+     */
+    const SCHEDULE = 'schedule';
+
+    /**
      * Registers the value with the passed key in the container.
      *
      * @param string $key   The key to register the value with
@@ -136,6 +147,41 @@ class BeanUtils extends GenericStackable implements Context
 
         // parse the doc block
         $parsed = $tokenizer->parse($reflectionClass->getDocComment(), $aliases);
+
+        // convert tokens and return one
+        $tokens = new Tokens($parsed);
+        $toArray = new ToArray();
+
+        // iterate over the tokens
+        foreach ($toArray->convert($tokens) as $token) {
+            $tokeName = strtolower($token->name);
+            if ($tokeName === $annotation) {
+                return true;
+            }
+        }
+
+        // return FALSE if bean annotation has not been found
+        return false;
+    }
+
+    /**
+     * Returns TRUE if the method has the passed annotation, else FALSE.
+     *
+     * @param \ReflectionMethod $reflectionMethod The method to return the annotation for
+     * @param string            $annotation       The annotation to check for
+     *
+     * @return boolean TRUE if the bean has the passed annotation, else FALSE
+     */
+    public function hasMethodAnnotation(\ReflectionMethod $reflectionMethod, $annotation)
+    {
+
+        // initialize the annotation tokenizer
+        $tokenizer = new Tokenizer();
+        $tokenizer->ignore(array('author', 'package', 'license', 'copyright'));
+        $aliases = array();
+
+        // parse the doc block
+        $parsed = $tokenizer->parse($reflectionMethod->getDocComment(), $aliases);
 
         // convert tokens and return one
         $tokens = new Tokens($parsed);
@@ -263,5 +309,96 @@ class BeanUtils extends GenericStackable implements Context
                 return $tokeName;
             }
         }
+    }
+
+    /**
+     * Returns the value of the method annotation for the passed reflection method.
+     *
+     * @param \ReflectionMethod $reflectionMethod The method to return the annotation value for
+     * @param string            $annotation      The annotation to check for
+     *
+     * @return \TechDivision\PersistenceContainer\Annotations\AnnotationInterface|null The found method annotation
+     */
+    public function getMethodAnnotationInstance(\ReflectionMethod $reflectionMethod, $annotation)
+    {
+
+        // initialize the annotation tokenizer
+        $tokenizer = new Tokenizer();
+        $tokenizer->ignore(array('author', 'package', 'license', 'copyright'));
+
+        // set the aliases
+        $aliases = array();
+
+        // parse the doc block
+        $parsed = $tokenizer->parse($reflectionMethod->getDocComment(), $aliases);
+
+        // convert tokens and return one
+        $tokens = new Tokens($parsed);
+        $toArray = new ToArray();
+
+        // iterate over the tokens
+        foreach ($toArray->convert($tokens) as $token) {
+
+            // check if the passed token name equals the requested one
+            if (strtolower($token->name) === $annotation) {
+
+                // prepare the name of the annotation class
+                $annotationClass = sprintf('TechDivision\\PersistenceContainer\\Annotations\\%s', $token->name);
+
+                // create a new instance, initialize and return it
+                $reflectionClass = new \ReflectionClass($annotationClass);
+                return $reflectionClass->newInstance($token);
+            }
+        }
+    }
+
+    /**
+     * Creates a new timer configuration from the passed reflection method.
+     *
+     * @param \ReflectionMethod $reflectionMethod The reflection method to create the timer config from
+     *
+     * @return \TechDivision\EnterpriseBeans\TimerConfig The instance
+     */
+    public function createTimerConfigFromReflectionMethod(\ReflectionMethod $reflectionMethod)
+    {
+
+        // load class and method name from the reflection method
+        $className = $reflectionMethod->getDeclaringClass()->getName();
+        $methodName = $reflectionMethod->getName();
+
+        // create a new local method call instance
+        $localMethod = new LocalMethodCall($className, $methodName);
+
+        // add the local method call as info
+        return new TimerConfig($localMethod);
+    }
+
+    /**
+     * Creates a new schedule expression instance from the passed annotation data.
+     *
+     * @param \TechDivision\PersistenceContainer\Annotations\Schedule $annotation The annotation instance with the data
+     *
+     * @return \TechDivision\EnterpriseBeans\ScheduleExpression The expression initialzed with the data from the annotation
+     */
+    public function createScheduleAnnotationFromScheduleExpression(Schedule $annotation)
+    {
+
+        // create a new expression instance
+        $expression = new ScheduleExpression();
+
+        // copy the data from the annotation
+        $expression->hour($annotation->getHour());
+        $expression->minute($annotation->getMinute());
+        $expression->month($annotation->getMonth());
+        $expression->second($annotation->getSecond());
+        $expression->start(new \DateTime($annotation->getStart()));
+        $expression->end(new \DateTime($annotation->getEnd()));
+        $expression->timezone($annotation->getTimezone());
+        $expression->year($annotation->getYear());
+        $expression->dayOfMonth($annotation->getDayOfMonth());
+        $expression->dayOfWeek($annotation->getDayOfWeek());
+
+        // return the expression
+        return $expression;
     }
 }
