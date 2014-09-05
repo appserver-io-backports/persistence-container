@@ -31,6 +31,7 @@ use TechDivision\EnterpriseBeans\TimerConfig;
 use TechDivision\EnterpriseBeans\ScheduleExpression;
 use TechDivision\PersistenceContainer\LocalMethodCall;
 use TechDivision\PersistenceContainer\Annotations\Schedule;
+use TechDivision\PersistenceContainer\TimedObjectInvoker;
 
 /**
  * Utility class with some bean utilities.
@@ -101,6 +102,13 @@ class BeanUtils extends GenericStackable implements Context
      * @var string
      */
     const SCHEDULE = 'schedule';
+
+    /**
+     * The annotation for a default timeout method.
+     *
+     * @var string
+     */
+    const TIMEOUT = 'timeout';
 
     /**
      * Registers the value with the passed key in the container.
@@ -315,7 +323,7 @@ class BeanUtils extends GenericStackable implements Context
      * Returns the value of the method annotation for the passed reflection method.
      *
      * @param \ReflectionMethod $reflectionMethod The method to return the annotation value for
-     * @param string            $annotation      The annotation to check for
+     * @param string            $annotation       The annotation to check for
      *
      * @return \TechDivision\PersistenceContainer\Annotations\AnnotationInterface|null The found method annotation
      */
@@ -353,34 +361,13 @@ class BeanUtils extends GenericStackable implements Context
     }
 
     /**
-     * Creates a new timer configuration from the passed reflection method.
-     *
-     * @param \ReflectionMethod $reflectionMethod The reflection method to create the timer config from
-     *
-     * @return \TechDivision\EnterpriseBeans\TimerConfig The instance
-     */
-    public function createTimerConfigFromReflectionMethod(\ReflectionMethod $reflectionMethod)
-    {
-
-        // load class and method name from the reflection method
-        $className = $reflectionMethod->getDeclaringClass()->getName();
-        $methodName = $reflectionMethod->getName();
-
-        // create a new local method call instance
-        $localMethod = new LocalMethodCall($className, $methodName);
-
-        // add the local method call as info
-        return new TimerConfig($localMethod);
-    }
-
-    /**
      * Creates a new schedule expression instance from the passed annotation data.
      *
      * @param \TechDivision\PersistenceContainer\Annotations\Schedule $annotation The annotation instance with the data
      *
      * @return \TechDivision\EnterpriseBeans\ScheduleExpression The expression initialzed with the data from the annotation
      */
-    public function createScheduleAnnotationFromScheduleExpression(Schedule $annotation)
+    public function createScheduleExpressionFromScheduleAnnotation(Schedule $annotation)
     {
 
         // create a new expression instance

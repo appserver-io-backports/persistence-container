@@ -21,11 +21,21 @@
 
 namespace TechDivision\PersistenceContainer;
 
+use TechDivision\Storage\GenericStackable;
+use TechDivision\Lang\NumberFormatException;
+use TechDivision\Lang\IllegalStateException;
 use TechDivision\EnterpriseBeans\TimerInterface;
 use TechDivision\EnterpriseBeans\ScheduleExpression;
+use TechDivision\EnterpriseBeans\NoMoreTimeoutsException;
+use TechDivision\EnterpriseBeans\EnterpriseBeansException;
+use TechDivision\EnterpriseBeans\NoSuchObjectLocalException;
+use TechDivision\EnterpriseBeans\TimedObjectInterface;
+use TechDivision\EnterpriseBeans\TimerServiceInterface;
+use TechDivision\PersistenceContainer\Tasks\TimerTask;
+use TechDivision\PersistenceContainer\Utils\TimerState;
 
 /**
- * Class Timer
+ * A timer implementation for single action and interval timers.
  *
  * @category  Library
  * @package   TechDivision_PersistenceContainer
@@ -35,15 +45,29 @@ use TechDivision\EnterpriseBeans\ScheduleExpression;
  * @link      https://github.com/techdivision/TechDivision_PersistenceContainer
  * @link      http://www.appserver.io
  */
-class Timer implements TimerInterface
+class Timer extends GenericStackable implements TimerInterface
 {
 
     /**
-     * The schedule expression corresponding to this timer.
+     * The date format we use to serialize/unserialize \DateTime properties.
      *
-     * @var \TechDivision\EnterpriseBeans\ScheduleExpression
+     * @var string
      */
-    protected $schedule;
+    const DATE_FORMAT = 'Y-m-d H:i:s';
+
+    /**
+     * The unique identifier for this timer.
+     *
+     * @var string
+     */
+    protected $id;
+
+    /**
+     * The timer service instance.
+     *
+     * @var \TechDivision\PersistenceContainer\TimerServiceInterface
+     */
+    protected $timerService;
 
     /**
      * The Serializable object that was passed in at timer creation.
@@ -60,28 +84,129 @@ class Timer implements TimerInterface
     protected $persistent = true;
 
     /**
-     * Sets the schedule expression corresponding to this timer.
+     * TRUE if the timer has to be canceled.
      *
-     * @return \TechDivision\EnterpriseBeans\ScheduleExpression
-     *
-     * @return void
-     * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure.
+     * @var boolean
      */
-    public function setSchedule(ScheduleExpression $schedule)
+    protected $cancel = false;
+
+    /**
+     *  The first expiry of this timer.
+     *
+     * @var string
+     */
+    protected $initialExpiration;
+
+    /**
+     * The duration (in microseconds) between timeouts.
+     *
+     * @var integer
+     */
+    protected $intervalDuration = 0;
+
+    /**
+     * The ID of the timed object the timer is bound to.
+     *
+     * @var string
+     */
+    protected $timedObjectId;
+
+    /**
+     * The date of the previous run.
+     *
+     * @var \DateTime
+     */
+    protected $previousRun;
+
+    /**
+     * The timer state.
+     *
+     * @var integer
+     */
+    protected $timerState;
+
+    /**
+     * Initializes the timer with the necessary data.
+     *
+     * @param \TechDivision\PersistenceContainer\CalendarTimerBuilder $builder      The builder with the data to create the timer from
+     * @param \TechDivision\EnterpriseBeans\TimerServiceInterface     $timerService The timer service instance
+     */
+    public function __construct(CalendarTimerBuilder $builder, TimerServiceInterface $timerService)
     {
-        // $this->schedule = $schedule;
+
+        // initialize the members
+        $this->id = $builder->getId();
+        $this->timedObjectId = $builder->getTimedObjectId();
+        $this->info = $builder->getInfo();
+        $this->persistent = $builder->isPersistent();
+        $this->initialExpiration = $builder->getInitialDate();
+        $this->intervalDuration = $builder->getRepeatInterval();
+
+        // check if this is a new timer and the builders next date is NULL
+        if ($builder->isNewTimer() && $builder->getNextDate() == null) {
+            // if yes, the next expiration date is the initial date
+            $this->nextExpiration = $this->initialExpiration;
+        } else {
+            $this->nextExpiration = $builder->getNextDate();
+        }
+
+        // we don't have a previous run
+        $this->previousRun = null;
+
+        // set the instances
+        $this->timerState = $builder->getTimerState();
+        $this->timerService = $timerService;
+        $this->timedObjectInvoker = $timerService->getTimedObjectInvoker();
     }
 
     /**
-     * Marks the timer to has persistent guarantees.
+     * The unique identifier for this timer.
      *
-     * @param boolean $persistent TRUE if the timer has persistent guarantees
-     *
-     * @return void
+     * @return string
      */
-    public function setPersistent($persistent)
+    public function getId()
     {
-        $this->persistent = $persistent;
+        return $this->id;
+    }
+
+    /**
+     * Returns the instance that'll be invoked when the timeout expires.
+     *
+     * @return \TechDivision\EnterpriseBeans\TimedObjectInvokerInterface The instance to be invoked when the timeout expires
+     */
+    public function getTimedObjectInvoker()
+    {
+        return $this->timedObjectInvoker;
+    }
+
+    /**
+     * Returns the instance that'll be invoked when the timeout expires.
+     *
+     * @return \TechDivision\EnterpriseBeans\TimeServiceInterface The instance to be invoked when the timeout expires
+     */
+    public function getTimerService()
+    {
+        return $this->timerService;
+    }
+
+    /**
+     * Returns the first expiry of this timer.
+     *
+     * @return \DateTime The first expiry of this timer
+     */
+    public function getInitialExpiration()
+    {
+        return \DateTime::createFromFormat(Timer::DATE_FORMAT, $this->initialExpiration);
+    }
+
+    /**
+     * Returns the duration (in microseconds) between timeouts.
+     *
+     * @return integer The duration (in microseconds) between timeouts
+     */
+    public function getIntervalDuration()
+    {
+        return $this->intervalDuration;
     }
 
     /**
@@ -105,33 +230,67 @@ class Timer implements TimerInterface
      **/
     public function cancel()
     {
-        // TODO: Implement cancel() method.
+        $this->cancel = true;
     }
 
     /**
-     * Get the number of milliseconds that will elapse before the next scheduled timer expiration.
+     * This method is similar to Timer::getNextTimeout(), except that this method does not check the timer state and
+     * hence does not throw either IllegalStateException or NoSuchObjectLocalException or EnterpriseBeansException.
      *
-     * @return int Number of milliseconds that will elapse before the next scheduled timer expiration.
-     * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure.
-     **/
-    public function getTimeRemaining()
+     * @return \DateTime The date of the next timeout expiration
+     */
+    public function getNextExpiration()
     {
-        return 10000000;
+        return \DateTime::createFromFormat(Timer::DATE_FORMAT, $this->nextExpiration);
+    }
+
+    /**
+     * Sets the next timeout of this timer.
+     *
+     * @param \DateTime $next The next scheduled timeout of this timer
+     *
+     * @return void
+     */
+    public function setNextTimeout(\DateTime $next)
+    {
+        $this->nextExpiration = $next->format(Timer::DATE_FORMAT);
     }
 
     /**
      * Get the point in time at which the next timer expiration is scheduled to occur.
      *
-     * @return \DateTime Get the point in time at which the next timer expiration is scheduled to occur.
-     * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure.
+     * @return \DateTime Get the point in time at which the next timer expiration is scheduled to occur
+     * @throws \TechDivision\EnterpriseBeans\NoSuchObjectLocalException If invoked on a timer that has expired or has been cancelled
+     * @throws \TechDivision\EnterpriseBeans\NoMoreTimeoutsException Indicates that the timer has no future timeouts
+     * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure
      **/
     public function getNextTimeout()
     {
-        /*
-        $nextTimeout = new \DateTime();
-        $nextTimeout->sub(\DateInterval::createFromDateString('1 seconds'));
-        return $nextTimeout;
-        */
+
+        // throw an exception if timer has been canceled
+        if ($this->cancel === true) {
+            throw new NoSuchObjectLocalException('Timer has been cancelled');
+        }
+
+        // return the timeout of the next expiration
+        return $this->getNextExpiration();
+    }
+
+    /**
+     * Get the number of microseconds that will elapse before the next scheduled timer expiration.
+     *
+     * @return int Number of microseconds that will elapse before the next scheduled timer expiration
+     * @throws \TechDivision\EnterpriseBeans\NoSuchObjectLocalException If invoked on a timer that has expired or has been cancelled
+     * @throws \TechDivision\EnterpriseBeans\NoMoreTimeoutsException Indicates that the timer has no future timeouts
+     * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure
+     **/
+    public function getTimeRemaining()
+    {
+
+        $nextTimeoutInMicroseconds = $this->getNextTimeout()->getTimestamp();
+        $currentTimeInMicroseconds = time();
+
+        return ($nextTimeoutInMicroseconds - $currentTimeInMicroseconds)  * 1000000;
     }
 
     /**
@@ -162,11 +321,12 @@ class Timer implements TimerInterface
      * Get the schedule expression corresponding to this timer.
      *
      * @return \TechDivision\EnterpriseBeans\ScheduleExpression
+     * @throws \TechDivision\Lang\IllegalStateException If this method is invoked while the instance is in a state that does not allow access to this method
      * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure.
      */
     public function getSchedule()
     {
-        return $this->schedule;
+        throw new IllegalStateException('This is not an calendar based timer');
     }
 
     /**
@@ -177,17 +337,107 @@ class Timer implements TimerInterface
      */
     public function isCalendarTimer()
     {
-        return isset($this->schedule);
+        return false;
+    }
+
+    /**
+     * Query whether this is an auto-timer or a normal programmatically created timer.
+     *
+     * @return boolean TRUE if this timer is a auto-timer, else FALSE
+     */
+    public function isAutoTimer()
+    {
+        return false;
     }
 
     /**
      * Query whether this timer has persistent semantics.
      *
      * @return boolean True if this timer has persistent guarantees.
-     * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure.
      */
     public function isPersistent()
     {
         return $this->persistent;
+    }
+
+    /**
+     * Creates and schedules a TimerTask for the next timeout of this timer.
+     *
+     * @param boolean $newTimer TRUE if this is a new timer being scheduled, and not a re-schedule due to a timeout
+     *
+     * @return void
+     */
+    public function scheduleTimeout($newTimer)
+    {
+        $this->getTimerService()->scheduleTimeout($this, $newTimer);
+    }
+
+    /**
+     * Returns the task which handles the timeouts of this timer.
+     *
+     * @return \TechDivision\PersistenceContainer\TimerTask The task
+     */
+    protected function getTimerTask()
+    {
+        return new TimerTask($this);
+    }
+
+    /**
+     * Instanciates a new builder that creates a timer instance.
+     *
+     *  @return \TechDivision\PersistenceContainer\TimerBuilder The builder instance
+     */
+    public static function builder()
+    {
+        return new TimerBuilder();
+    }
+
+    /**
+     * Returns TRUE if this timer is active, else FALSE.
+     *
+     * A timer is considered to be "active", if its timer state is neither of the following:
+     *
+     * - TimerState::CANCELED
+     * - TimerState::EXPIRED
+     * - has not been suspended
+     *
+     * And if the corresponding timer service is still up
+     *
+     * @return boolean TRUE if the timer is active
+     */
+    public function isActive()
+    {
+        return $this->timerService->isStarted() && !$this->isCanceled() && !$this->isExpired() &&
+            ($this->timerService->isScheduled($this->getId()) || $this->timerState == TimerState::CREATED);
+    }
+
+    /**
+     * Returns TRUE if this timer is in TimerState::CANCELED state, else FALSE.
+     *
+     * @return boolean TRUE if this timer has been canceled
+     */
+    public function isCanceled()
+    {
+        return $this->timerState == TimerState::CANCELED;
+    }
+
+    /**
+     * Returns TRUE if this timer is in TimerState::EXPIRED state, else FALSE.
+     *
+     * @return boolean TRUE if this timer has been expired
+     */
+    public function isExpired()
+    {
+        return $this->timerState == TimerState::EXPIRED;
+    }
+
+    /**
+     * Returns TRUE if this timer is in TimerState::RETRY_TIMEOUT, else returns FALSE.
+     *
+     * @return boolean TRUE if this timer will be retried
+     */
+    public function isInRetry()
+    {
+        return $this->timerState == TimerState::RETRY_TIMEOUT;
     }
 }

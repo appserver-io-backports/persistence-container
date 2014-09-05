@@ -24,16 +24,17 @@ namespace TechDivision\PersistenceContainer;
 
 use Rhumsaa\Uuid\Uuid;
 use TechDivision\Storage\StorageInterface;
-use TechDivision\Storage\StackableStorage;
 use TechDivision\Storage\GenericStackable;
 use TechDivision\EnterpriseBeans\TimerConfig;
-use TechDivision\EnterpriseBeans\TimerServiceInterface;
+use TechDivision\EnterpriseBeans\TimerInterface;
+use TechDivision\EnterpriseBeans\MethodInterface;
 use TechDivision\EnterpriseBeans\ScheduleExpression;
-use TechDivision\PersistenceContainer\Annotations\Schedule;
+use TechDivision\EnterpriseBeans\TimerServiceInterface;
+use TechDivision\EnterpriseBeans\TimedObjectInvokerInterface;
 use TechDivision\PersistenceContainer\Utils\BeanUtils;
+use TechDivision\PersistenceContainer\Annotations\Schedule;
 use TechDivision\PersistenceContainerProtocol\RemoteMethodCall;
-use TechDivision\Application\Interfaces\ApplicationInterface;
-use TechDivision\Application\Interfaces\ManagerConfigurationInterface;
+use TechDivision\PersistenceContainer\Utils\TimerState;
 
 /**
  * The timer service implementation providing functionality to handle timers.
@@ -46,8 +47,32 @@ use TechDivision\Application\Interfaces\ManagerConfigurationInterface;
  * @link      https://github.com/techdivision/TechDivision_PersistenceContainer
  * @link      http://www.appserver.io
  */
-class TimerService extends GenericStackable implements TimerServiceContext
+class TimerService extends GenericStackable implements TimerServiceInterface
 {
+
+    /**
+     * Injects the timed object invoker handling timer invokation on timed object instances.
+     *
+     * @param \TechDivision\EnterpriseBeans\TimedObjectInvokerInterface $timedObjectInvoker The timed object invoker instance
+     *
+     * @return void
+     */
+    public function injectTimedObjectInvoker(TimedObjectInvokerInterface $timedObjectInvoker)
+    {
+        $this->timedObjectInvoker = $timedObjectInvoker;
+    }
+
+    /**
+     * Injects the timer service executor.
+     *
+     * @param \TechDivision\PersistencContainer\TimerServiceExecutor $timerServiceExecutor The timer service executor instance
+     *
+     * @return void
+     */
+    public function injectTimerServiceExecutor(TimerServiceExecutor $timerServiceExecutor)
+    {
+        $this->timerServiceExecutor = $timerServiceExecutor;
+    }
 
     /**
      * Injects the storage for the timers.
@@ -74,72 +99,225 @@ class TimerService extends GenericStackable implements TimerServiceContext
     }
 
     /**
-     * Injects the absolute path to the web application.
-     *
-     * @param string $webappPath The absolute path to this web application
-     *
-     * @return void
-     */
-    public function injectWebappPath($webappPath)
-    {
-        $this->webappPath = $webappPath;
-    }
-
-    /**
-     * Create a calendar-based timer based on the input schedule expression.
-     *
-     * @param \TechDivision\EnterpriseBeans\ScheduleExpression $schedule    A schedule expression describing the timeouts for this timer.
-     * @param \TechDivision\EnterpriseBeans\TimerConfig        $timerConfig Timer configuration.
-     *
-     * @return \TechDivision\EnterpriseBeans\TimerInterface The newly created Timer.
-     * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure.
-     */
-    public function createCalendarTimer(ScheduleExpression $schedule, TimerConfig $timerConfig = null)
-    {
-
-        // create a new timer
-        $timer = new Timer();
-
-        // set the necessary information
-        $timer->setSchedule($schedule);
-        $timer->setPersistent($timerConfig->isPersistent());
-        $timer->setInfo($timerConfig->getInfo());
-
-        // return the timer instance
-        return $timer;
-    }
-
-    /**
      * Create an interval timer whose first expiration occurs at a given point in time and
      * whose subsequent expirations occur after a specified interval.
      *
-     * @param int                                       $initialExpiration The number of milliseconds that must elapse before the firsttimer expiration notification.
-     * @param int                                       $intervalDuration  The number of milliseconds that must elapse between timer
+     * @param integer       $initialExpiration The number of milliseconds that must elapse before the firsttimer expiration notification
+     * @param integer       $intervalDuration  The number of milliseconds that must elapse between timer
      *      expiration notifications. Expiration notifications are scheduled relative to the time of the first expiration. If
      *      expiration is delayed(e.g. due to the interleaving of other method calls on the bean) two or more expiration notifications
      *      may occur in close succession to "catch up".
-     * @param \TechDivision\EnterpriseBeans\TimerConfig $timerConfig       Timer configuration.
+     * @param \Serializable $info              Serializable info that will be made available through the newly created timers Timer::getInfo() method
+     * @param boolean       $persistent        TRUE if the newly created timer has to be persistent
      *
-     * @return \TechDivision\EnterpriseBeans\TimerInterface The newly created Timer.
-     * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure.
+     * @return \TechDivision\EnterpriseBeans\TimerInterface The newly created Timer
+     * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure
      **/
-    public function createIntervalTimer($initialExpiration, $intervalDuration, TimerConfig $timerConfig)
+    public function createIntervalTimer($initialExpiration, $intervalDuration, \Serializable $info = null, $persistent = true)
     {
-        // TODO: Implement createIntervalTimer() method.
+
+        // create the actual date and add the initial expiration
+        $now = new \DateTime();
+        $now->add(new \DateInterval(sprintf('PT%dS', $initialExpiration)));
+
+        // create a new timer
+        return $this->createTimer($now, $intervalDuration, $info, $persistent);
     }
 
     /**
      * Create a single-action timer that expires after a specified duration.
      *
-     * @param int                                       $duration    The number of milliseconds that must elapse before the timer expires.
-     * @param \TechDivision\EnterpriseBeans\TimerConfig $timerConfig Timer configuration.
+     * @param integer       $duration   The number of microseconds that must elapse before the timer expires
+     * @param \Serializable $info       Serializable info that will be made available through the newly created timers Timer::getInfo() method
+     * @param boolean       $persistent TRUE if the newly created timer has to be persistent
      *
      * @return \TechDivision\EnterpriseBeans\TimerInterface The newly created Timer.
      * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure.
      **/
-    public function createSingleActionTimer($duration, TimerConfig $timerConfig)
+    public function createSingleActionTimer($duration, \Serializable $info = null, $persistent = true)
     {
-        // TODO: Implement createSingleActionTimer() method.
+
+        // create the actual date and add the initial expiration
+        $now = new \DateTime();
+        $now->add(new \DateInterval(sprintf('PT%dS', $duration)));
+
+        // we don't have an interval
+        $intervalDuration = 0;
+
+        // create and return the timer instance
+        return $this->createTimer($now, $intervalDuration, $info, $persistent);
+    }
+
+    /**
+     * Create a calendar-based timer based on the input schedule expression.
+     *
+     * @param \TechDivision\EnterpriseBeans\ScheduleExpression $schedule      A schedule expression describing the timeouts for this timer
+     * @param \Serializable                                    $info          Serializable info that will be made available through the newly created timers Timer::getInfo() method
+     * @param boolean                                          $persistent    TRUE if the newly created timer has to be persistent
+     * @param \TechDivision\EnterpriseBeans\MethodInterface    $timeoutMethod The timeout method to be invoked
+     *
+     * @return \TechDivision\EnterpriseBeans\TimerInterface The newly created Timer.
+     * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure.
+     */
+    public function createCalendarTimer(ScheduleExpression $schedule, \Serializable $info = null, $persistent = true, MethodInterface $timeoutMethod = null)
+    {
+
+        // create the timer
+        $timer = CalendarTimer::builder()
+            ->setAutoTimer($timeoutMethod != null)
+            ->setScheduleExprSecond($schedule->getSecond())
+            ->setScheduleExprMinute($schedule->getMinute())
+            ->setScheduleExprHour($schedule->getHour())
+            ->setScheduleExprDayOfWeek($schedule->getDayOfWeek())
+            ->setScheduleExprDayOfMonth($schedule->getDayOfMonth())
+            ->setScheduleExprMonth($schedule->getMonth())
+            ->setScheduleExprYear($schedule->getYear())
+            ->setScheduleExprStartDate(\DateTime::createFromFormat(ScheduleExpression::DATE_FORMAT, $schedule->getStart()))
+            ->setScheduleExprEndDate(\DateTime::createFromFormat(ScheduleExpression::DATE_FORMAT, $schedule->getEnd()))
+            ->setScheduleExprTimezone($schedule->getTimezone())
+            ->setTimeoutMethod($timeoutMethod)
+            ->setTimerState(TimerState::CREATED)
+            ->setId(Uuid::uuid4()->__toString())
+            ->setPersistent($persistent)
+            ->setTimedObjectId($this->getTimedObjectInvoker()->getTimedObjectId())
+            ->setInfo($info)
+            ->setNewTimer(true)
+            ->build($this);
+
+        // $this->persistTimer($timer, true);
+
+        // now "start" the timer. This involves, moving the timer to an ACTIVE state and scheduling the timer task
+        $this->startTimer($timer);
+
+        // return the timer
+        return $timer;
+    }
+
+    /**
+     * Create a new timer instance with the passed data.
+     *
+     * @param \DateTime     $initialExpiration The date at which the first timeout should occur.
+     *     If the date is in the past, then the timeout is triggered immediately
+     *     when the timer moves to TimerState::ACTIVE
+     * @param integer       $intervalDuration  The interval (in milli seconds) between consecutive timeouts for the newly created timer.
+     *     Cannot be a negative value. A value of 0 indicates a single timeout action
+     * @param \Serializable $info              Serializable info that will be made available through the newly created timers Timer::getInfo() method
+     * @param boolean       $persistent        TRUE if the newly created timer has to be persistent
+     *
+     * @return \TechDivision\EnterpriseBeans\TimerInterface Returns the newly created timer
+     * @throws IllegalArgumentException If initialExpiration is null or intervalDuration is negative
+     * @throws IllegalStateException If this method was invoked during a lifecycle callback on the enterprise bean
+     */
+    protected function createTimer(\DateTime $initialExpiration, $intervalDuration = 0, \Serializable $info = null, $persistent = true)
+    {
+
+        // create the timer
+        $timer = Timer::builder()
+            ->setNewTimer(true)
+            ->setId(Uuid::uuid4()->__toString())
+            ->setInitialDate($initialExpiration)
+            ->setRepeatInterval($intervalDuration)
+            ->setInfo($info)
+            ->setPersistent($persistent)
+            ->setTimerState(TimerState::CREATED)
+            ->setTimedObjectId($this->getTimedObjectInvoker()->getTimedObjectId())
+            ->build($this);
+
+        // $this->persistTimer($timer, true);
+
+        // now "start" the timer. This involves, moving the timer to an ACTIVE state and scheduling the timer task
+        $this->startTimer($timer);
+
+        // return the newly created timer
+        return $timer;
+    }
+
+    /**
+     * Initially starts the passed timer.
+     *
+     * @param \TechDivision\EnterpriseBeans\TimerInterface $timer The timer we want to start
+     *
+     * @return void
+     */
+    protected function startTimer(TimerInterface $timer)
+    {
+        $this->registerTimer($timer);
+        $timer->scheduleTimeout(true);
+    }
+
+    /**
+     * Registers the passed timer in the timer service instance.
+     *
+     * @param \TechDivision\EnterpriseBeans\TimerInterface $timer The timer we want to register for this timer service
+     *
+     * @return void
+     */
+    protected function registerTimer(TimerInterface $timer)
+    {
+        $this->timers[$timer->getId()] = $timer;
+    }
+
+    /**
+     * Creates and schedules a timer taks for the next timeout of the passed timer.
+     *
+     * @param \TechDivision\EnterpriseBeans\TimerInterface $timer    The timer we want to schedule a task for
+     * @param boolean                                      $newTimer TRUE if this is a new timer being scheduled, and not a re-schedule due to a timeout
+     *
+     * @return void
+     */
+    public function scheduleTimeout(TimerInterface $timer, $newTimer)
+    {
+
+        if ($newTimer === false && $this->timers->has($timer->getId()) === false) {
+            // this timer has been cancelled by another thread, we just return
+            return;
+        }
+
+        // check the next expiration
+        $nextExpiration = $timer->getNextExpiration();
+        if ($nextExpiration == null) {
+            error_log(
+                sprintf(
+                    'Next expiration is null. No tasks will be scheduled for timer %s',
+                    $timer->getId()
+                )
+            );
+            return;
+        }
+
+        // create the timer task
+        $timerTask = $timer->getTimerTask();
+
+        // find out how long is it away from now
+        $delay = ($nextExpiration->getTimestamp() - time()) * 1000000;
+
+        // check if we've a scheduled timer
+        $intervalDuration = $timer->getIntervalDuration();
+        if ($intervalDuration > 0) {
+
+            error_log(
+                sprintf(
+                    'Scheduling timer %s at fixed rate, starting at %d microseconds from now with repeated interval=%d',
+                    $timer->getId(),
+                    $delay,
+                    $intervalDuration
+                )
+            );
+
+            $this->getExecutor()->scheduleAtFixedRate($timerTask, $delay, $intervalDuration);
+
+        } else {
+
+            error_log(
+                sprintf(
+                    'Scheduling a single action timer %s starting at %d microseconds from now',
+                    $timer->getId(),
+                    $delay
+                )
+            );
+
+            $this->getTimerServiceExecutor()->schedule($timerTask, $delay);
+        }
     }
 
     /**
@@ -168,115 +346,6 @@ class TimerService extends GenericStackable implements TimerServiceContext
     }
 
     /**
-     * Has been automatically invoked by the container after the application
-     * instance has been created.
-     *
-     * @param \TechDivision\Application\Interfaces\ApplicationInterface $application The application instance
-     *
-     * @return void
-     * @see \TechDivision\Application\Interfaces\ManagerInterface::initialize()
-     */
-    public function initialize(ApplicationInterface $application)
-    {
-        $this->registerTimers($application);
-    }
-
-    /**
-     * Registers the timers, declared by the bean annotations, at startup.
-     *
-     * @param \TechDivision\Application\Interfaces\ApplicationInterface $application The application instance
-     *
-     * @return void
-     */
-    protected function registerTimers(ApplicationInterface $application)
-    {
-
-        // build up META-INF directory var
-        $metaInfDir = $this->getWebappPath() . DIRECTORY_SEPARATOR .'META-INF';
-
-        // check if we've found a valid directory
-        if (is_dir($metaInfDir) === false) {
-            return;
-        }
-
-        // check meta-inf classes or any other sub folder to pre init beans
-        $recursiveIterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($metaInfDir));
-        $phpFiles = new \RegexIterator($recursiveIterator, '/^(.+)\.php$/i');
-
-        // iterate all php files
-        foreach ($phpFiles as $phpFile) {
-
-            try {
-
-                // cut off the META-INF directory and replace OS specific directory separators
-                $relativePathToPhpFile = str_replace(DIRECTORY_SEPARATOR, '\\', str_replace($metaInfDir, '', $phpFile));
-
-                // now cut off the first directory, that'll be '/classes' by default
-                $pregResult = preg_replace('%^(\\\\*)[^\\\\]+%', '', $relativePathToPhpFile);
-                $className = substr($pregResult, 0, -4);
-
-                // we need a reflection class to read the annotations
-                $reflectionClass = new \ReflectionClass($className);
-
-                // first check if the bean implements the interface necessary for a timed object
-                if ($reflectionClass->implementsInterface('TechDivision\EnterpriseBeans\TimedObjectInterface') === false) {
-                    continue;
-                }
-
-                // only beans with a @Stateless or @Singleton annotation are allowed to initialize schedule timers
-                if ($this->getBeanUtils()->hasBeanAnnotation($reflectionClass, BeanUtils::STATELESS) ||
-                    $this->getBeanUtils()->hasBeanAnnotation($reflectionClass, BeanUtils::SINGLETON)) {
-
-                    // check the methods of the bean for a @Schedule annotation
-                    foreach ($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
-
-                        // then check if we found a bean with @Schedule annotation
-                        if ($this->getBeanUtils()->hasMethodAnnotation($reflectionMethod, BeanUtils::SCHEDULE)) { // register the timers
-
-                            // load the schedule annotation instance
-                            $annotation = $this->getBeanUtils()->getMethodAnnotationInstance($reflectionMethod, BeanUtils::SCHEDULE);
-
-                            // create the schedule and the timer config
-                            $schedule = $this->getBeanUtils()->createScheduleAnnotationFromScheduleExpression($annotation);
-                            $timerConfig = $this->getBeanUtils()->createTimerConfigFromReflectionMethod($reflectionMethod);
-
-                            // create and add a new calendar timer
-                            $this->timers[Uuid::uuid4()->__toString()] = $this->createCalendarTimer($schedule, $timerConfig);
-
-                            // log a message that we've successfully add a timer
-                            $application->getInitialContext()->getSystemLogger()->debug(
-                                sprintf(
-                                    'Successfully added scheduled timer for method %s::%s to timer service',
-                                    $reflectionMethod->getDeclaringClass()->getName(),
-                                    $reflectionMethod->getName()
-                                )
-                            );
-                        }
-                    }
-                }
-
-            } catch (\Exception $e) { // if class can not be reflected continue with next class
-
-                // log an error message
-                $application->getInitialContext()->getSystemLogger()->error($e->__toString());
-
-                // proceed with the nexet bean
-                continue;
-            }
-        }
-    }
-
-    /**
-     * Returns the absolute path to the web application.
-     *
-     * @return string The absolute path
-     */
-    public function getWebappPath()
-    {
-        return $this->webappPath;
-    }
-
-    /**
      * Returns the bean utilties.
      *
      * @return \TechDivision\PersistenceContainer\Utils\BeanUtils The bean utilities.
@@ -287,68 +356,34 @@ class TimerService extends GenericStackable implements TimerServiceContext
     }
 
     /**
-     * Registers the value with the passed key in the container.
+     * Returns the timed object invoker handling timer invokation on timed object instances.
      *
-     * @param string $key   The key to register the value with
-     * @param object $value The value to register
-     *
-     * @return void
+     * @return \TechDivision\EnterpriseBeans\TimedObjectInvokerInterface The timed object invoker instance
      */
-    public function setAttribute($key, $value)
+    public function getTimedObjectInvoker()
     {
-        $this->data->set($key, $value);
+        return $this->timedObjectInvoker;
     }
 
     /**
-     * Returns the attribute with the passed key from the container.
+     * Returns the timer object executor instances.
      *
-     * @param string $key The key the requested value is registered with
-     *
-     * @return mixed|null The requested value if available
+     * @return \TechDivision\PersistenceContainer\TimerServiceExecutor The timer service executor
      */
-    public function getAttribute($key)
+    public function getTimerServiceExecutor()
     {
-        if ($this->data->has($key)) {
-            return $this->data->get($key);
-        }
+        return $this->timerServiceExecutor;
     }
 
     /**
-     * Initializes the manager instance.
+     * Queries if the timer with the passed ID has already been scheduled.
      *
-     * @return void
-     * @see \TechDivision\Application\Interfaces\ManagerInterface::initialize()
+     * @param string $id The ID of the timer
+     *
+     * @return boolean TRUE if the timer is schedule, else FALSE
      */
-    public function getIdentifier()
+    public function isScheduled($id)
     {
-        return TimerServiceContext::IDENTIFIER;
-    }
-
-    /**
-     * Factory method that adds a initialized manager instance to the passed application.
-     *
-     * @param \TechDivision\Application\Interfaces\ApplicationInterface               $application          The application instance
-     * @param \TechDivision\Application\Interfaces\ManagerConfigurationInterface|null $managerConfiguration The manager configuration
-     *
-     * @return void
-     * @see \TechDivision\Application\Interfaces\ManagerInterface::get()
-     */
-    public static function visit(ApplicationInterface $application, ManagerConfigurationInterface $managerConfiguration = null)
-    {
-
-        // create an instance of the bean utilities
-        $beanUtils = new BeanUtils();
-
-        // initialize the stackable for the timers
-        $timers = new StackableStorage();
-
-        // initialize the timer service
-        $timerService = new TimerService();
-        $timerService->injectTimers($timers);
-        $timerService->injectBeanUtils($beanUtils);
-        $timerService->injectWebappPath($application->getWebappPath());
-
-        // add the initialized manager instance to the application
-        $application->addManager($timerService);
+        return array_key_exists($id, $this->timers);
     }
 }

@@ -94,6 +94,13 @@ class Schedule implements AnnotationInterface
     protected $year = "*";
 
     /**
+     * The aliases to be replaced with valid CRON values.
+     *
+     * @var array
+     */
+    protected $aliases = array('EVERY' => '*', 'ZERO' => '0');
+
+    /**
      * The constructor the initializes the instance with the
      * data passed with the token.
      *
@@ -101,7 +108,16 @@ class Schedule implements AnnotationInterface
      */
     public function __construct(\stdClass $token)
     {
+
+        // set the values found in the annotation
         foreach ($token->values as $member => $value) {
+
+            // check if we've to replace the value
+            if (array_key_exists($value, $this->aliases)) {
+                $value = $this->aliases[$value];
+            }
+
+            // set the value
             $this->$member = $value;
         }
     }
