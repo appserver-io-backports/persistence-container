@@ -29,9 +29,11 @@ use TechDivision\Context\Context;
 use TechDivision\Storage\GenericStackable;
 use TechDivision\EnterpriseBeans\TimerConfig;
 use TechDivision\EnterpriseBeans\ScheduleExpression;
-use TechDivision\PersistenceContainer\LocalMethodCall;
 use TechDivision\PersistenceContainer\Annotations\Schedule;
 use TechDivision\PersistenceContainer\TimedObjectInvoker;
+use TechDivision\PersistenceContainer\Annotations\PostConstruct;
+use TechDivision\PersistenceContainer\Annotations\PreDestroy;
+use TechDivision\PersistenceContainer\Annotations\Timeout;
 
 /**
  * Utility class with some bean utilities.
@@ -81,34 +83,6 @@ class BeanUtils extends GenericStackable implements Context
      * @var string
      */
     const STARTUP = 'startup';
-
-    /**
-     * The annotation for a method that has to be invoked after the instance has been created.
-     *
-     * @var string
-     */
-    const POST_CONSTRUCT = 'postconstruct';
-
-    /**
-     * The annotation for a method that has to be invoked before the instance will be destroyed
-     *
-     * @var string
-     */
-    const PRE_DESTROY = 'predestroy';
-
-    /**
-     * The annotation for method, a timer has to be registered for.
-     *
-     * @var string
-     */
-    const SCHEDULE = 'schedule';
-
-    /**
-     * The annotation for a default timeout method.
-     *
-     * @var string
-     */
-    const TIMEOUT = 'timeout';
 
     /**
      * Registers the value with the passed key in the container.
@@ -304,8 +278,8 @@ class BeanUtils extends GenericStackable implements Context
 
         // defines the available method annotations
         $methodAnnotations = array(
-            BeanUtils::POST_CONSTRUCT,
-            BeanUtils::PRE_DESTROY
+            PostConstruct::ANNOTATION,
+            PreDestroy::ANNOTATION
         );
 
         // iterate over the tokens
@@ -361,31 +335,58 @@ class BeanUtils extends GenericStackable implements Context
     }
 
     /**
-     * Creates a new schedule expression instance from the passed annotation data.
+     * Returns the method annotation for the passed reflection method, that can be
+     * one of PostConstruct or PreDestroy.
      *
-     * @param \TechDivision\PersistenceContainer\Annotations\Schedule $annotation The annotation instance with the data
+     * @param \ReflectionMethod $reflectionMethod The method to return the annotation for
      *
-     * @return \TechDivision\EnterpriseBeans\ScheduleExpression The expression initialzed with the data from the annotation
+     * @return string|null The found method annotation
      */
-    public function createScheduleExpressionFromScheduleAnnotation(Schedule $annotation)
+    public function getMethodAnnotations(\ReflectionMethod $reflectionMethod)
     {
 
-        // create a new expression instance
-        $expression = new ScheduleExpression();
+        // initialize the array with the found annotations
+        $annotationsFound = array();
 
-        // copy the data from the annotation
-        $expression->hour($annotation->getHour());
-        $expression->minute($annotation->getMinute());
-        $expression->month($annotation->getMonth());
-        $expression->second($annotation->getSecond());
-        $expression->start(new \DateTime($annotation->getStart()));
-        $expression->end(new \DateTime($annotation->getEnd()));
-        $expression->timezone($annotation->getTimezone());
-        $expression->year($annotation->getYear());
-        $expression->dayOfMonth($annotation->getDayOfMonth());
-        $expression->dayOfWeek($annotation->getDayOfWeek());
+        // initialize the annotation tokenizer
+        $tokenizer = new Tokenizer();
+        $tokenizer->ignore(array('param', 'return', 'throws', 'see', 'link'));
+        $aliases = array();
 
-        // return the expression
-        return $expression;
+        // parse the doc block
+        $parsed = $tokenizer->parse($reflectionMethod->getDocComment(), $aliases);
+
+        // convert tokens and return one
+        $tokens = new Tokens($parsed);
+        $toArray = new ToArray();
+
+        // defines the available method annotations
+        $methodAnnotations = array(
+            PostConstruct::ANNOTATION,
+            PreDestroy::ANNOTATION,
+            Schedule::ANNOTATION,
+            Timeout::ANNOTATION
+        );
+
+        // iterate over the tokens
+        foreach ($toArray->convert($tokens) as $token) {
+
+            // prepare the annotation name
+            $annotationName = strtolower($token->name);
+
+            // check if the passed token name equals the requested one
+            if (in_array($annotationName, $methodAnnotations)) {
+
+                // prepare the name of the annotation class
+                $annotationClass = sprintf('TechDivision\\PersistenceContainer\\Annotations\\%s', $token->name);
+
+                // create a new instance, initialize and return it
+                $reflectionClass = new \ReflectionClass($annotationClass);
+                $annotationsFound[$annotationName] = $reflectionClass->newInstance($token);
+            }
+        }
+
+        // returns the array with the found annotations
+        return $annotationsFound;
     }
 }

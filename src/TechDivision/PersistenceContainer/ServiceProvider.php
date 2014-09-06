@@ -1,7 +1,7 @@
 <?php
 
 /**
- * TechDivision\PersistenceContainer\TimerServiceExecutor
+ * TechDivision\PersistenceContainer\ServiceProvider
  *
  * NOTICE OF LICENSE
  *
@@ -22,10 +22,8 @@
 
 namespace TechDivision\PersistenceContainer;
 
-use TechDivision\Storage\GenericStackable;
-
 /**
- * The executor thread for the timers.
+ * The interface for all services of the persistence container.
  *
  * @category  Library
  * @package   TechDivision_PersistenceContainer
@@ -35,50 +33,20 @@ use TechDivision\Storage\GenericStackable;
  * @link      https://github.com/techdivision/TechDivision_PersistenceContainer
  * @link      http://www.appserver.io
  */
-class TimerServiceExecutor extends \Thread
+interface ServiceProvider
 {
 
     /**
-     * Contains the scheduled timer tasks.
+     * Returns the service name.
      *
-     * @var \TechDivision\Storage\GenericStackable
+     * @return string
      */
-    protected $scheduledTimerTasks;
+    public function getServiceName();
 
     /**
-     * Initializes the queue worker with the application and the storage it should work on.
-     */
-    public function __construct()
-    {
-
-        // a collection with the schedule timer tasks
-        $this->scheduledTimerTasks = new GenericStackable();
-
-        // start the worker
-        $this->start();
-    }
-
-    /**
-     * Adds the passed timer task to the schedule.
+     * Returns the unique service identifier.
      *
-     * @param \Thread $timerTask The timer task to schedule
-     *
-     * @return void
+     * @return string
      */
-    public function schedule(\Thread $timerTask)
-    {
-        $this->scheduledTimerTasks[] = $timerTask;
-    }
-
-    /**
-     * Only wait for executing timer tasks.
-     *
-     * @return void
-     */
-    public function run()
-    {
-        while (true) {
-            $this->wait(1000000); // wait one second
-        }
-    }
+    public function getPrimaryKey();
 }

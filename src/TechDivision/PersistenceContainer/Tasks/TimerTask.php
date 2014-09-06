@@ -25,6 +25,7 @@ namespace TechDivision\PersistenceContainer\Tasks;
 
 use TechDivision\Storage\StackableStorage;
 use TechDivision\EnterpriseBeans\TimerInterface;
+use TechDivision\PersistenceContainer\Utils\TimerState;
 
 /**
  * The timer task.
@@ -84,7 +85,6 @@ class TimerTask extends \Thread
 
         try {
 
-            /*
             if ($timer->isActive() === false) {
 
                 error_log(
@@ -97,7 +97,6 @@ class TimerTask extends \Thread
 
                 return;
             }
-            */
 
             // set the current date as the "previous run" of the timer.
             // $timer->setPreviousRun(new \DateTime());
@@ -105,7 +104,7 @@ class TimerTask extends \Thread
             $timer->setNextTimeout($this->calculateNextTimeout($timer));
 
             // change the state to mark it as in timeout method
-            // $timer->setTimerState(TimerState::IN_TIMEOUT);
+            $timer->setTimerState(TimerState::IN_TIMEOUT);
 
             // persist changes
             // $timerService->persistTimer($timer, false);

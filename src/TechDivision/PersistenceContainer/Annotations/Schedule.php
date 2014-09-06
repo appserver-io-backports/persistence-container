@@ -16,6 +16,8 @@
 
 namespace TechDivision\PersistenceContainer\Annotations;
 
+use TechDivision\EnterpriseBeans\ScheduleExpression;
+
 /**
  * Annotation implementation representing a @Schedule annotation on a bean method.
  *
@@ -42,6 +44,13 @@ namespace TechDivision\PersistenceContainer\Annotations;
  */
 class Schedule implements AnnotationInterface
 {
+
+    /**
+     * The annotation for method, a timer has to be registered for.
+     *
+     * @var string
+     */
+    const ANNOTATION = 'schedule';
 
     /**
      * @var string
@@ -220,5 +229,32 @@ class Schedule implements AnnotationInterface
     public function getYear()
     {
         return $this->year;
+    }
+
+    /**
+     * Creates a new schedule expression instance from this annotations data.
+     *
+     * @return \TechDivision\EnterpriseBeans\ScheduleExpression The expression initialzed with the data from this annotation
+     */
+    public function toScheduleExpression()
+    {
+
+        // create a new expression instance
+        $expression = new ScheduleExpression();
+
+        // copy the data from the annotation
+        $expression->hour($this->getHour());
+        $expression->minute($this->getMinute());
+        $expression->month($this->getMonth());
+        $expression->second($this->getSecond());
+        $expression->start(new \DateTime($this->getStart()));
+        $expression->end(new \DateTime($this->getEnd()));
+        $expression->timezone($this->getTimezone());
+        $expression->year($this->getYear());
+        $expression->dayOfMonth($this->getDayOfMonth());
+        $expression->dayOfWeek($this->getDayOfWeek());
+
+        // return the expression
+        return $expression;
     }
 }

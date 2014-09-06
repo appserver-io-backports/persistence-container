@@ -47,8 +47,16 @@ use TechDivision\PersistenceContainer\Utils\TimerState;
  * @link      https://github.com/techdivision/TechDivision_PersistenceContainer
  * @link      http://www.appserver.io
  */
-class TimerService extends GenericStackable implements TimerServiceInterface
+class TimerService extends GenericStackable implements TimerServiceInterface, ServiceProvider
 {
+
+    /**
+     * Initializes the timer service instance.
+     */
+    public function __construct()
+    {
+        $this->started = false;
+    }
 
     /**
      * Injects the timed object invoker handling timer invokation on timed object instances.
@@ -96,6 +104,28 @@ class TimerService extends GenericStackable implements TimerServiceInterface
     public function injectBeanUtils(BeanUtils $beanUtils)
     {
         $this->beanUtils = $beanUtils;
+    }
+
+    /**
+     * Returns identifier for this timer service instance.
+     *
+     * @return string The primary key of the timer service instance
+     * @see \TechDivision\PersistenceContainer\ServiceProvider::getPrimaryKey()
+     */
+    public function getPrimaryKey()
+    {
+        return $this->getTimedObjectInvoker()->getTimedObjectId();
+    }
+
+    /**
+     * Returns the unique service name.
+     *
+     * @return string The service name
+     * @see \TechDivision\PersistenceContainer\ServiceProvider::getServiceName()
+     */
+    public function getServiceName()
+    {
+        return 'EnterpriseBeans.TimerService';
     }
 
     /**
@@ -268,56 +298,43 @@ class TimerService extends GenericStackable implements TimerServiceInterface
     public function scheduleTimeout(TimerInterface $timer, $newTimer)
     {
 
+        // check if this timer has been cancelled by another thread
         if ($newTimer === false && $this->timers->has($timer->getId()) === false) {
-            // this timer has been cancelled by another thread, we just return
-            return;
+            return; // if yes, we just return
         }
 
-        // check the next expiration
-        $nextExpiration = $timer->getNextExpiration();
-        if ($nextExpiration == null) {
-            error_log(
-                sprintf(
-                    'Next expiration is null. No tasks will be scheduled for timer %s',
-                    $timer->getId()
-                )
-            );
-            return;
+        // if next expiration is NULL, no more tasks will be scheduled for this timer
+        if ($timer->getNextExpiration() == null) {
+            return; // we just return
         }
 
-        // create the timer task
-        $timerTask = $timer->getTimerTask();
+        // create the timer task and schedule it
+        $this->getTimerServiceExecutor()->schedule($timer->getTimerTask());
+    }
 
-        // find out how long is it away from now
-        $delay = ($nextExpiration->getTimestamp() - time()) * 1000000;
+    /**
+     * Creates the auto timer instances.
+     *
+     * @return void
+     */
+    public function start()
+    {
 
-        // check if we've a scheduled timer
-        $intervalDuration = $timer->getIntervalDuration();
-        if ($intervalDuration > 0) {
+        // load the timeout methods annotated with @Schedule
+        foreach ($this->getTimedObjectInvoker()->getTimeoutMethods() as $timeoutMethod) {
 
-            error_log(
-                sprintf(
-                    'Scheduling timer %s at fixed rate, starting at %d microseconds from now with repeated interval=%d',
-                    $timer->getId(),
-                    $delay,
-                    $intervalDuration
-                )
-            );
+            if ($timeoutMethod instanceof TimeoutMethod) { // make sure we've a timeout method
 
-            $this->getExecutor()->scheduleAtFixedRate($timerTask, $delay, $intervalDuration);
+                // create the schedule expression from the timeout methods @Schedule annotation
+                $schedule = $timeoutMethod->getAnnotation(Schedule::ANNOTATION)->toScheduleExpression();
 
-        } else {
-
-            error_log(
-                sprintf(
-                    'Scheduling a single action timer %s starting at %d microseconds from now',
-                    $timer->getId(),
-                    $delay
-                )
-            );
-
-            $this->getTimerServiceExecutor()->schedule($timerTask, $delay);
+                // create and add a new calendar timer
+                $this->createCalendarTimer($schedule, null, true, $timeoutMethod);
+            }
         }
+
+        // mark timer service as started
+        $this->started = true;
     }
 
     /**
@@ -385,5 +402,15 @@ class TimerService extends GenericStackable implements TimerServiceInterface
     public function isScheduled($id)
     {
         return array_key_exists($id, $this->timers);
+    }
+
+    /**
+     * Queries whether the service has been started or not.
+     *
+     * @return boolean TRUE if the service has been started, else FALSE
+     */
+    public function isStarted()
+    {
+        return $this->started;
     }
 }

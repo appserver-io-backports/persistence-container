@@ -1,7 +1,7 @@
 <?php
 
 /**
- * TechDivision\PersistenceContainer\InvalidLifetimeException
+ * TechDivision\PersistenceContainer\ServiceAlreadyRegisteredException
  *
  * NOTICE OF LICENSE
  *
@@ -22,7 +22,7 @@
 namespace TechDivision\PersistenceContainer;
 
 /**
- * This is the exception that is thrown if the passed lifetime is of the wrong type.
+ * This is the exception that is thrown if someone tries to register a service a second time.
  *
  * @category  Appserver
  * @package   TechDivision_PersistenceContainer
@@ -31,6 +31,6 @@ namespace TechDivision\PersistenceContainer;
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * @link      http://www.appserver.io
  */
-class InvalidLifetimeException extends \Exception
+class ServiceAlreadyRegisteredException extends \Exception
 {
 }

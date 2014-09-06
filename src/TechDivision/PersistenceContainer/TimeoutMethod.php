@@ -22,6 +22,7 @@
 namespace TechDivision\PersistenceContainer;
 
 use TechDivision\EnterpriseBeans\MethodInterface;
+use TechDivision\PersistenceContainer\Utils\BeanUtils;
 
 /**
  * A timeout method call implementation.
@@ -52,24 +53,24 @@ class TimeoutMethod implements MethodInterface
     protected $methodName = '';
 
     /**
-     * The method parameters.
+     * The method annotations.
      *
      * @var array
      */
-    protected $parameters = array();
+    protected $annotations = array();
 
     /**
      * Initializes the timeout method with the passed data.
      *
-     * @param string $className  The class name to invoke the method on
-     * @param string $methodName The method name to invoke on the class
-     * @param array  $parameters The method parameters
+     * @param string $className   The class name to invoke the method on
+     * @param string $methodName  The method name to invoke on the class
+     * @param array  $annotations The method annotations
      */
-    public function __construct($className, $methodName, array $parameters = array())
+    public function __construct($className, $methodName, array $annotations = array())
     {
         $this->className = $className;
         $this->methodName = $methodName;
-        $this->parameters = $parameters;
+        $this->annotations = $annotations;
     }
 
     /**
@@ -97,12 +98,22 @@ class TimeoutMethod implements MethodInterface
     /**
      * Returns the method parameters.
      *
-     * @return mixed The parameter's value
+     * @return array The method parameters
      * @see \TechDivision\EnterpriseBeans\MethodInterface::getParameters()
      */
     public function getParameters()
     {
-        return $this->parameters;
+        return array();
+    }
+
+    /**
+     * Returns the method annotations.
+     *
+     * @return array The method annotations
+     */
+    public function getAnnotations()
+    {
+        return $this->annotations;
     }
 
     /**
@@ -129,5 +140,66 @@ class TimeoutMethod implements MethodInterface
         foreach (unserialize($data) as $propertyName => $propertyValue) {
             $this->$propertyName = $propertyValue;
         }
+    }
+
+    /**
+     * Queries whether the timeout method has an annotation with the passed name or not.
+     *
+     * @param string $annotationName The annotation we want to query
+     *
+     * @return boolean TRUE if the timeout method has the annotation, else FALSE
+     */
+    public function hasAnnotation($annotationName)
+    {
+        return isset($this->annotations[$annotationName]);
+    }
+
+    /**
+     * Returns the annotation instance with the passed name.
+     *
+     * @param string $annotationName The name of the requested annotation instance
+     *
+     * @return \TechDivision\PersistenceContainer\Annotations\AnnotationInterface|null The requested annotation instance
+     * @see \TechDivision\PersistenceContainer\TimeoutMethod::hasAnnotation()
+     */
+    public function getAnnotation($annotationName)
+    {
+        if ($this->hasAnnotation($annotationName)) {
+            return $this->annotations[$annotationName];
+        }
+    }
+
+    /**
+     * Returns a reflection method representation of this instance.
+     *
+     * @return \ReflectionMethod The reflection method instance
+     */
+    public function toReflectionMethod()
+    {
+        return new \ReflectionMethod($this->getClassName(), $this->getMethodName());
+    }
+
+    /**
+     * Creates a new timeout method instance from the passed reflection method.
+     *
+     * @param \ReflectionMethod $reflectionMethod The reflection method to load the data from
+     *
+     * @return \TechDivision\PersistenceContainer\TimeoutMethod The instance
+     */
+    public static function fromReflectionMethod(\ReflectionMethod $reflectionMethod)
+    {
+
+        // we need the bean utils
+        $beanUtils = new BeanUtils();
+
+        // load the method annotations
+        $annotations = $beanUtils->getMethodAnnotations($reflectionMethod);
+
+        // load class and method name from the reflection class
+        $className = $reflectionMethod->getDeclaringClass()->getName();
+        $methodName = $reflectionMethod->getName();
+
+        // initialize and return the timeout method instance
+        return new TimeoutMethod($className, $methodName, $annotations);
     }
 }

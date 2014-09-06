@@ -110,6 +110,7 @@ class BeanLocator implements ResourceLocator
 
                 // if not create a new instance and return it
                 return $beanManager->newInstance($className, $args);
+
                 break;
 
             case BeanUtils::STATELESS: // @Stateless

@@ -28,7 +28,8 @@ use TechDivision\EnterpriseBeans\TimerInterface;
 use TechDivision\EnterpriseBeans\MethodInterface;
 use TechDivision\EnterpriseBeans\TimedObjectInterface;
 use TechDivision\EnterpriseBeans\TimedObjectInvokerInterface;
-use TechDivision\Application\Interfaces\ApplicationInterface;
+use TechDivision\PersistenceContainer\Annotations\Timeout;
+use TechDivision\PersistenceContainer\Annotations\Schedule;
 
 /**
  * Timed object invoker for an enterprise bean.
@@ -57,39 +58,27 @@ class TimedObjectInvoker extends GenericStackable implements TimedObjectInvokerI
     }
 
     /**
-     * Injects the application instance.
-     *
-     * @param \TechDivision\Application\Interfaces\ApplicationInterface $application The application instance
-     *
-     * @return void
-     */
-    public function injectApplication(ApplicationInterface $application)
-    {
-        $this->application = $application;
-    }
-
-    /**
      * Injects the timed object instance.
      *
-     * @param \TechDivision\EnterpriseBeans\TimedObjectInstance $timedObject The timed object instance
+     * @param object $timedObject The timed object instance
      *
      * @return void
      */
-    public function injectTimedObject(TimedObjectInterface $timedObject)
+    public function injectTimedObject($timedObject)
     {
         $this->timedObject = $timedObject;
     }
 
     /**
-     * Injects the storage for the timeout interceptors.
+     * Injects the storage for the timeout methods.
      *
-     * @param \TechDivision\Storage\StorageInterface $timeoutInterceptors The storage for the timeout interceptors
+     * @param \TechDivision\Storage\StorageInterface $timeoutMethods The storage for the timeout methods
      *
      * @return void
      */
-    public function injectTimeoutInterceptors(StorageInterface $timeoutInterceptors)
+    public function injectTimeoutMethods(StorageInterface $timeoutMethods)
     {
-        $this->timeoutInterceptors = $timeoutInterceptors;
+        $this->timeoutMethods = $timeoutMethods;
     }
 
     /**
@@ -103,16 +92,6 @@ class TimedObjectInvoker extends GenericStackable implements TimedObjectInvokerI
     }
 
     /**
-     * The application instance providing the database connection.
-     *
-     * @return \TechDivision\Application\Interfaces\ApplicationInterface The application instance
-     */
-    public function getApplication()
-    {
-        return $this->application;
-    }
-
-    /**
      * Return the timed object instance.
      *
      * @return \TechDivision\EnterpriseBeans\TimedObjectInterface The timed object instance
@@ -123,13 +102,13 @@ class TimedObjectInvoker extends GenericStackable implements TimedObjectInvokerI
     }
 
     /**
-     * Returns the timeout interceptors.
+     * Returns the timeout methods.
      *
-     * @return \TechDivision\Storage\StorageInterface A collection of timeout interceptors
+     * @return \TechDivision\Storage\StorageInterface A collection of timeout methods
      **/
-    public function getTimeoutInterceptors()
+    public function getTimeoutMethods()
     {
-        return $this->timeoutInterceptors;
+        return $this->timeoutMethods;
     }
 
     /**
@@ -157,28 +136,28 @@ class TimedObjectInvoker extends GenericStackable implements TimedObjectInvokerI
     public function callTimeout(TimerInterface $timer, MethodInterface $timeoutMethod = null)
     {
 
-        // create a reflection object instance of the timed object
-        $reflectionObject = new \ReflectionObject($this->getTimedObject());
-
-        // if we don't have a timeout method passed, try to load the default one
-        if ($timeoutMethod == null && $this->timeoutInterceptors->count() > 0) {
-            foreach ($this->timeoutInterceptors as $timeoutMethod) {
-                break;
-            }
-        }
-
         // check if the timeout method is valid
-        if ($timeoutMethod != null && $reflectionObject->hasMethod($timeoutMethod->getMethodName())) {
+        if ($timeoutMethod != null) {
 
             // invoke the timeout method
-            $reflectionMethod = $reflectionObject->getMethod($timeoutMethod->getMethodName());
+            $reflectionMethod = $timeoutMethod->toReflectionMethod();
             $reflectionMethod->invoke($this->getTimedObject(), $timer);
+            return;
+        }
+
+        // check if we've a default timeout method
+        if ($this->defaultTimeoutMethod != null) {
+
+            // invoke the default timeout method
+            $reflectionMethod = $this->defaultTimeoutMethod->toReflectionMethod();
+            $reflectionMethod->invoke($this->getTimedObject(), $timer);
+            return;
         }
     }
 
     /**
      * Initializes the timed object invoker with the methods annotated
-     * with the @Timeout annotation.
+     * with the @Timeout or @Schedule annotation.
      *
      * @return void
      */
@@ -188,12 +167,27 @@ class TimedObjectInvoker extends GenericStackable implements TimedObjectInvokerI
         // create a reflection object instance of the timed object
         $reflectionObject = new \ReflectionObject($this->getTimedObject());
 
-        // check the methods of the bean for a @Timeout annotation
+        // first check if the bean implements the timed object interface => so we've a default timeout method
+        if ($reflectionObject->implementsInterface('TechDivision\EnterpriseBeans\TimedObjectInterface')) {
+            $reflectionMethod = $reflectionObject->getMethod(TimedObjectInterface::DEFAULT_TIMEOUT_METHOD);
+            $this->defaultTimeoutMethod = TimeoutMethod::fromReflectionMethod($reflectionMethod);
+        }
+
+        // check the methods of the bean for a @Timeout annotation => overwrite the default
+        // timeout method defined by the interface
         foreach ($reflectionObject->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
 
-            // then check if the timed object instance has @Timeout annotation
-            if ($this->getBeanUtils()->hasMethodAnnotation($reflectionMethod, BeanUtils::TIMEOUT)) {
-                $this->timeoutInterceptors[] = new TimeoutMethod($reflectionMethod->getDeclaringClass(), $reflectionMethod->getName());
+            // initialize the timeout method instance
+            $timeoutMethod = TimeoutMethod::fromReflectionMethod($reflectionMethod);
+
+            // check if the timed object instance has @Timeout annotation => default timeout method
+            if ($timeoutMethod->hasAnnotation(Timeout::ANNOTATION)) {
+                $this->defaultTimeoutMethod = $timeoutMethod;
+            }
+
+            // check if the timed object instance has @Schedule annotation
+            if ($timeoutMethod->hasAnnotation(Schedule::ANNOTATION)) {
+                $this->timeoutMethods[$timeoutMethod->getMethodName()] = $timeoutMethod;
             }
         }
     }

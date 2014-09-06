@@ -393,6 +393,18 @@ class Timer extends GenericStackable implements TimerInterface
     }
 
     /**
+     * Sets the (new) timer state.
+     *
+     * @param integer $timerState The timer state
+     *
+     * @return void
+     */
+    public function setTimerState($timerState)
+    {
+        $this->timerState = $timerState;
+    }
+
+    /**
      * Returns TRUE if this timer is active, else FALSE.
      *
      * A timer is considered to be "active", if its timer state is neither of the following:
