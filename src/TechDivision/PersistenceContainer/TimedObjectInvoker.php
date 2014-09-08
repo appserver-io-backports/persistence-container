@@ -30,6 +30,7 @@ use TechDivision\EnterpriseBeans\TimedObjectInterface;
 use TechDivision\EnterpriseBeans\TimedObjectInvokerInterface;
 use TechDivision\PersistenceContainer\Annotations\Timeout;
 use TechDivision\PersistenceContainer\Annotations\Schedule;
+use TechDivision\Application\Interfaces\ApplicationInterface;
 
 /**
  * Timed object invoker for an enterprise bean.
@@ -82,6 +83,18 @@ class TimedObjectInvoker extends GenericStackable implements TimedObjectInvokerI
     }
 
     /**
+     * Injects the application instance.
+     *
+     * @param \TechDivision\Application\ApplicationInterface $application The application instance
+     *
+     * @return void
+     */
+    public function injectApplication(ApplicationInterface $application)
+    {
+        $this->application = $application;
+    }
+
+    /**
      * Returns the bean utilties.
      *
      * @return \TechDivision\PersistenceContainer\Utils\BeanUtils The bean utilities.
@@ -109,6 +122,16 @@ class TimedObjectInvoker extends GenericStackable implements TimedObjectInvokerI
     public function getTimeoutMethods()
     {
         return $this->timeoutMethods;
+    }
+
+    /**
+     * Returns the application instance.
+     *
+     * @return \TechDivision\Application\Interfaces\ApplicationInterface The application instance
+     */
+    public function getApplication()
+    {
+        return $this->application;
     }
 
     /**
@@ -144,6 +167,9 @@ class TimedObjectInvoker extends GenericStackable implements TimedObjectInvokerI
             $reflectionMethod->invoke($this->getTimedObject(), $timer);
             return;
         }
+
+        // register the class loader for the pre-loaded timeout methods
+        $this->getApplication()->registerClassLoaders();
 
         // check if we've a default timeout method
         if ($this->defaultTimeoutMethod != null) {

@@ -128,10 +128,10 @@ class Timer extends GenericStackable implements TimerInterface
     /**
      * Initializes the timer with the necessary data.
      *
-     * @param \TechDivision\PersistenceContainer\CalendarTimerBuilder $builder      The builder with the data to create the timer from
-     * @param \TechDivision\EnterpriseBeans\TimerServiceInterface     $timerService The timer service instance
+     * @param \TechDivision\PersistenceContainer\TimerBuilder     $builder      The builder with the data to create the timer from
+     * @param \TechDivision\EnterpriseBeans\TimerServiceInterface $timerService The timer service instance
      */
-    public function __construct(CalendarTimerBuilder $builder, TimerServiceInterface $timerService)
+    public function __construct(TimerBuilder $builder, TimerServiceInterface $timerService)
     {
 
         // initialize the members
@@ -139,15 +139,19 @@ class Timer extends GenericStackable implements TimerInterface
         $this->timedObjectId = $builder->getTimedObjectId();
         $this->info = $builder->getInfo();
         $this->persistent = $builder->isPersistent();
-        $this->initialExpiration = $builder->getInitialDate();
         $this->intervalDuration = $builder->getRepeatInterval();
+
+        // if we found a initial date, set it
+        if ($builder->getInitialDate() != null) {
+            $this->initialExpiration = $builder->getInitialDate()->format(Timer::DATE_FORMAT);
+        }
 
         // check if this is a new timer and the builders next date is NULL
         if ($builder->isNewTimer() && $builder->getNextDate() == null) {
             // if yes, the next expiration date is the initial date
             $this->nextExpiration = $this->initialExpiration;
         } else {
-            $this->nextExpiration = $builder->getNextDate();
+            $this->nextExpiration = $builder->getNextDate()->format(Timer::DATE_FORMAT);
         }
 
         // we don't have a previous run
@@ -241,7 +245,9 @@ class Timer extends GenericStackable implements TimerInterface
      */
     public function getNextExpiration()
     {
-        return \DateTime::createFromFormat(Timer::DATE_FORMAT, $this->nextExpiration);
+        if ($this->nextExpiration != null) {
+            return \DateTime::createFromFormat(Timer::DATE_FORMAT, $this->nextExpiration);
+        }
     }
 
     /**
@@ -251,9 +257,13 @@ class Timer extends GenericStackable implements TimerInterface
      *
      * @return void
      */
-    public function setNextTimeout(\DateTime $next)
+    public function setNextTimeout(\DateTime $next = null)
     {
-        $this->nextExpiration = $next->format(Timer::DATE_FORMAT);
+        if ($next instanceof \DateTime) {
+            $this->nextExpiration = $next->format(Timer::DATE_FORMAT);
+        } else {
+            $this->nextExpiration = null;
+        }
     }
 
     /**
@@ -273,7 +283,15 @@ class Timer extends GenericStackable implements TimerInterface
         }
 
         // return the timeout of the next expiration
-        return $this->getNextExpiration();
+        $nextExpiration = $this->getNextExpiration();
+
+        // check if we've a next expiration timeout
+        if ($nextExpiration == null) {
+            throw new NoMoreTimeoutsException(sprintf('Timer %s has no more future timeouts', $this->getId()));
+        }
+
+        // return the next expiration date
+        return $nextExpiration;
     }
 
     /**
@@ -287,10 +305,12 @@ class Timer extends GenericStackable implements TimerInterface
     public function getTimeRemaining()
     {
 
-        $nextTimeoutInMicroseconds = $this->getNextTimeout()->getTimestamp();
-        $currentTimeInMicroseconds = time();
+        // load next timeout and current time in seconds
+        $nextTimeoutInSeconds = $this->getNextTimeout()->getTimestamp();
+        $currentTimeInSeconds = time();
 
-        return ($nextTimeoutInMicroseconds - $currentTimeInMicroseconds)  * 1000000;
+        // return the time remaining in MICROSECONS
+        return ($nextTimeoutInSeconds - $currentTimeInSeconds)  * 1000000;
     }
 
     /**

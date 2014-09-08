@@ -167,7 +167,7 @@ class TimerBuilder
      */
     public function setInfo(\Serializable $info = null)
     {
-        $this->info = info;
+        $this->info = $info;
         return $this;
     }
 

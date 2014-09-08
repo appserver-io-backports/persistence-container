@@ -92,12 +92,13 @@ class TimerServiceRegistry extends ServiceRegistry implements TimerServiceContex
 
                 // check if we have a bean with a @Stateless or @Singleton annotation
                 if ($beanUtils->hasBeanAnnotation($reflectionClass, BeanUtils::STATELESS) === false &&
-                    $beanUtils->hasBeanAnnotation($reflectionClass, BeanUtils::SINGLETON) === false
+                    $beanUtils->hasBeanAnnotation($reflectionClass, BeanUtils::SINGLETON) === false &&
+                    $beanUtils->hasBeanAnnotation($reflectionClass, BeanUtils::MESSAGEDRIVEN) === false
                 ) {
                     continue; // if not, we don't care here!
                 }
 
-                // lookup the enterprise using the resource locator
+                // lookup the enterprise bean using the resource locator
                 $timedObject = $beanManager->getResourceLocator()->lookup($beanManager, $className, null, array($application));
 
                 // initialize the stackable for the timeout methods
@@ -106,6 +107,7 @@ class TimerServiceRegistry extends ServiceRegistry implements TimerServiceContex
                 // create the timed object invoker
                 $timedObjectInvoker = new TimedObjectInvoker();
                 $timedObjectInvoker->injectBeanUtils($beanUtils);
+                $timedObjectInvoker->injectApplication($application);
                 $timedObjectInvoker->injectTimedObject($timedObject);
                 $timedObjectInvoker->injectTimeoutMethods($timeoutMethods);
                 $timedObjectInvoker->start();

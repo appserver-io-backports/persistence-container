@@ -148,7 +148,7 @@ class TimerService extends GenericStackable implements TimerServiceInterface, Se
 
         // create the actual date and add the initial expiration
         $now = new \DateTime();
-        $now->add(new \DateInterval(sprintf('PT%dS', $initialExpiration)));
+        $now->add(new \DateInterval(sprintf('PT%dS', $initialExpiration / 1000000)));
 
         // create a new timer
         return $this->createTimer($now, $intervalDuration, $info, $persistent);
@@ -169,7 +169,7 @@ class TimerService extends GenericStackable implements TimerServiceInterface, Se
 
         // create the actual date and add the initial expiration
         $now = new \DateTime();
-        $now->add(new \DateInterval(sprintf('PT%dS', $duration)));
+        $now->add(new \DateInterval(sprintf('PT%dS', $duration / 1000000)));
 
         // we don't have an interval
         $intervalDuration = 0;
