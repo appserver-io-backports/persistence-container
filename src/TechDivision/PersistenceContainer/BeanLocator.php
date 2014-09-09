@@ -25,6 +25,10 @@ namespace TechDivision\PersistenceContainer;
 use TechDivision\PersistenceContainer\BeanManager;
 use TechDivision\PersistenceContainer\Utils\BeanUtils;
 use TechDivision\PersistenceContainerProtocol\RemoteMethod;
+use TechDivision\PersistenceContainer\Annotations\Stateful;
+use TechDivision\PersistenceContainer\Annotations\Singleton;
+use TechDivision\PersistenceContainer\Annotations\Stateless;
+use TechDivision\PersistenceContainer\Annotations\MessageDriven;
 
 /**
  * The bean resource locator implementation.
@@ -86,7 +90,7 @@ class BeanLocator implements ResourceLocator
         // check what kind of bean we have
         switch ($beanType = $beanManager->getBeanUtils()->getBeanAnnotation($reflectionClass)) {
 
-            case BeanUtils::STATEFUL: // @Stateful
+            case Stateful::ANNOTATION: // @Stateful
 
                 // try to load the stateful session bean from the bean manager
                 if ($instance = $beanManager->lookupStatefulSessionBean($sessionId, $className)) {
@@ -95,8 +99,9 @@ class BeanLocator implements ResourceLocator
 
                 // if not create a new instance and return it
                 return $beanManager->newInstance($className, $args);
+                break;
 
-            case BeanUtils::SINGLETON: // @Singleton
+            case Singleton::ANNOTATION: // @Singleton
 
                 // try to load the singleton session bean from the bean manager
                 if ($instance = $beanManager->lookupSingletonSessionBean($className)) {
@@ -109,12 +114,17 @@ class BeanLocator implements ResourceLocator
                 }
 
                 // if not create a new instance and return it
-                return $beanManager->newInstance($className, $args);
+                $instance = $beanManager->newInstance($className, $args);
 
+                // add the singleton session bean to the container
+                $beanManager->getSingletonSessionBeans()->set($className, $instance) ;
+
+                // return the instance
+                return $instance;
                 break;
 
-            case BeanUtils::STATELESS: // @Stateless
-            case BeanUtils::MESSAGEDRIVEN: // @MessageDriven
+            case Stateless::ANNOTATION: // @Stateless
+            case MessageDriven::ANNOTATION: // @MessageDriven
 
                 // if not create a new instance and return it
                 return $beanManager->newInstance($className, $args);

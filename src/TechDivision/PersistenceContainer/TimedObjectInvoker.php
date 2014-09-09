@@ -23,13 +23,15 @@ namespace TechDivision\PersistenceContainer;
 
 use TechDivision\Storage\StorageInterface;
 use TechDivision\Storage\GenericStackable;
-use TechDivision\PersistenceContainer\Utils\BeanUtils;
+use TechDivision\Lang\Reflection\ClassInterface;
+use TechDivision\Lang\Reflection\MethodInterface;
 use TechDivision\EnterpriseBeans\TimerInterface;
-use TechDivision\EnterpriseBeans\MethodInterface;
 use TechDivision\EnterpriseBeans\TimedObjectInterface;
 use TechDivision\EnterpriseBeans\TimedObjectInvokerInterface;
+use TechDivision\PersistenceContainer\Utils\BeanUtils;
 use TechDivision\PersistenceContainer\Annotations\Timeout;
 use TechDivision\PersistenceContainer\Annotations\Schedule;
+use TechDivision\PersistenceContainerProtocol\BeanContext;
 use TechDivision\Application\Interfaces\ApplicationInterface;
 
 /**
@@ -61,11 +63,11 @@ class TimedObjectInvoker extends GenericStackable implements TimedObjectInvokerI
     /**
      * Injects the timed object instance.
      *
-     * @param object $timedObject The timed object instance
+     * @param \TechDivision\Lang\Reflection\ClassInterface $timedObject The timed object instance
      *
      * @return void
      */
-    public function injectTimedObject($timedObject)
+    public function injectTimedObject(ClassInterface $timedObject)
     {
         $this->timedObject = $timedObject;
     }
@@ -107,7 +109,7 @@ class TimedObjectInvoker extends GenericStackable implements TimedObjectInvokerI
     /**
      * Return the timed object instance.
      *
-     * @return \TechDivision\EnterpriseBeans\TimedObjectInterface The timed object instance
+     * @return \TechDivision\Lang\Reflection\ClassInterface The timed object instance
      */
     public function getTimedObject()
     {
@@ -141,7 +143,7 @@ class TimedObjectInvoker extends GenericStackable implements TimedObjectInvokerI
      */
     public function getTimedObjectId()
     {
-        return get_class($this->getTimedObject());
+        return $this->getTimedObject()->getClassName();
     }
 
     /**
@@ -151,32 +153,42 @@ class TimedObjectInvoker extends GenericStackable implements TimedObjectInvokerI
      * passed timer. The timerservice implementation will be responsible for passing the correct
      * timeout method corresponding to the <code>timer</code> on which the timeout has occurred.
      *
-     * @param \TechDivision\EnterpriseBean\TimerInterface  $timer         The timer that is passed to timeout
-     * @param \TechDivision\EnterpriseBean\MethodInterface $timeoutMethod The timeout method
+     * @param \TechDivision\EnterpriseBean\TimerInterface   $timer         The timer that is passed to timeout
+     * @param \TechDivision\Lang\Reflection\MethodInterface $timeoutMethod The timeout method
      *
      * @return void
      */
     public function callTimeout(TimerInterface $timer, MethodInterface $timeoutMethod = null)
     {
 
+        // initialize the class name and application
+        $className = $this->getTimedObjectId();
+        $application = $this->getApplication();
+
+        // register the class loader for the pre-loaded timeout methods
+        $application->registerClassLoaders();
+
+        // lookup the bean manager
+        $beanManager = $application->getManager(BeanContext::IDENTIFIER);
+
+        // lookup the enterprise bean using the resource locator
+        $instance = $beanManager->getResourceLocator()->lookup($beanManager, $className, null, array($application));
+
         // check if the timeout method is valid
         if ($timeoutMethod != null) {
 
             // invoke the timeout method
             $reflectionMethod = $timeoutMethod->toReflectionMethod();
-            $reflectionMethod->invoke($this->getTimedObject(), $timer);
+            $reflectionMethod->invoke($instance, $timer);
             return;
         }
-
-        // register the class loader for the pre-loaded timeout methods
-        $this->getApplication()->registerClassLoaders();
 
         // check if we've a default timeout method
         if ($this->defaultTimeoutMethod != null) {
 
             // invoke the default timeout method
             $reflectionMethod = $this->defaultTimeoutMethod->toReflectionMethod();
-            $reflectionMethod->invoke($this->getTimedObject(), $timer);
+            $reflectionMethod->invoke($instance, $timer);
             return;
         }
     }
@@ -191,17 +203,17 @@ class TimedObjectInvoker extends GenericStackable implements TimedObjectInvokerI
     {
 
         // create a reflection object instance of the timed object
-        $reflectionObject = new \ReflectionObject($this->getTimedObject());
+        $reflectionClass = $this->getTimedObject()->toReflectionClass();
 
         // first check if the bean implements the timed object interface => so we've a default timeout method
-        if ($reflectionObject->implementsInterface('TechDivision\EnterpriseBeans\TimedObjectInterface')) {
-            $reflectionMethod = $reflectionObject->getMethod(TimedObjectInterface::DEFAULT_TIMEOUT_METHOD);
+        if ($reflectionClass->implementsInterface('TechDivision\EnterpriseBeans\TimedObjectInterface')) {
+            $reflectionMethod = $reflectionClass->getMethod(TimedObjectInterface::DEFAULT_TIMEOUT_METHOD);
             $this->defaultTimeoutMethod = TimeoutMethod::fromReflectionMethod($reflectionMethod);
         }
 
         // check the methods of the bean for a @Timeout annotation => overwrite the default
         // timeout method defined by the interface
-        foreach ($reflectionObject->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
+        foreach ($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
 
             // initialize the timeout method instance
             $timeoutMethod = TimeoutMethod::fromReflectionMethod($reflectionMethod);

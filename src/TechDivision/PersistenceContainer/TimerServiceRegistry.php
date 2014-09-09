@@ -27,6 +27,9 @@ use TechDivision\Application\Interfaces\ApplicationInterface;
 use TechDivision\Application\Interfaces\ManagerConfigurationInterface;
 use TechDivision\PersistenceContainer\Utils\BeanUtils;
 use TechDivision\PersistenceContainerProtocol\BeanContext;
+use TechDivision\PersistenceContainer\Annotations\Stateless;
+use TechDivision\PersistenceContainer\Annotations\Singleton;
+use TechDivision\PersistenceContainer\Annotations\MessageDriven;
 
 /**
  * The timer service registry handles an applications timer services.
@@ -68,9 +71,6 @@ class TimerServiceRegistry extends ServiceRegistry implements TimerServiceContex
             return;
         }
 
-        // lookup the bean manager
-        $beanManager = $application->getManager(BeanContext::IDENTIFIER);
-
         // check meta-inf classes or any other sub folder to pre init beans
         $recursiveIterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($metaInfDir));
         $phpFiles = new \RegexIterator($recursiveIterator, '/^(.+)\.php$/i');
@@ -87,19 +87,19 @@ class TimerServiceRegistry extends ServiceRegistry implements TimerServiceContex
                 $pregResult = preg_replace('%^(\\\\*)[^\\\\]+%', '', $relativePathToPhpFile);
                 $className = substr($pregResult, 0, -4);
 
-                // we need a reflection class to read the annotations
+                // create the reflection class instance
                 $reflectionClass = new \ReflectionClass($className);
 
-                // check if we have a bean with a @Stateless or @Singleton annotation
-                if ($beanUtils->hasBeanAnnotation($reflectionClass, BeanUtils::STATELESS) === false &&
-                    $beanUtils->hasBeanAnnotation($reflectionClass, BeanUtils::SINGLETON) === false &&
-                    $beanUtils->hasBeanAnnotation($reflectionClass, BeanUtils::MESSAGEDRIVEN) === false
+                // initialize the timed object instance with the data from the reflection class
+                $timedObject = TimedObject::fromReflectionClass($reflectionClass);
+
+                // check if we have a bean with a @Stateless, @Singleton or @MessageDriven annotation
+                if ($timedObject->hasAnnotation(Stateless::ANNOTATION) === false &&
+                    $timedObject->hasAnnotation(Singleton::ANNOTATION) === false &&
+                    $timedObject->hasAnnotation(MessageDriven::ANNOTATION) === false
                 ) {
                     continue; // if not, we don't care here!
                 }
-
-                // lookup the enterprise bean using the resource locator
-                $timedObject = $beanManager->getResourceLocator()->lookup($beanManager, $className, null, array($application));
 
                 // initialize the stackable for the timeout methods
                 $timeoutMethods = new StackableStorage();
@@ -122,8 +122,8 @@ class TimerServiceRegistry extends ServiceRegistry implements TimerServiceContex
                 $timerService = new TimerService();
                 $timerService->injectTimers($timers);
                 $timerService->injectBeanUtils($beanUtils);
-                $timerService->injectTimerServiceExecutor($timerServiceExecutor);
                 $timerService->injectTimedObjectInvoker($timedObjectInvoker);
+                $timerService->injectTimerServiceExecutor($timerServiceExecutor);
                 $timerService->start();
 
                 // register the initialized timer service

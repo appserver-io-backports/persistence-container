@@ -25,9 +25,9 @@ namespace TechDivision\PersistenceContainer;
 use Rhumsaa\Uuid\Uuid;
 use TechDivision\Storage\StorageInterface;
 use TechDivision\Storage\GenericStackable;
+use TechDivision\Lang\Reflection\MethodInterface;
 use TechDivision\EnterpriseBeans\TimerConfig;
 use TechDivision\EnterpriseBeans\TimerInterface;
-use TechDivision\EnterpriseBeans\MethodInterface;
 use TechDivision\EnterpriseBeans\ScheduleExpression;
 use TechDivision\EnterpriseBeans\TimerServiceInterface;
 use TechDivision\EnterpriseBeans\TimedObjectInvokerInterface;
@@ -184,7 +184,7 @@ class TimerService extends GenericStackable implements TimerServiceInterface, Se
      * @param \TechDivision\EnterpriseBeans\ScheduleExpression $schedule      A schedule expression describing the timeouts for this timer
      * @param \Serializable                                    $info          Serializable info that will be made available through the newly created timers Timer::getInfo() method
      * @param boolean                                          $persistent    TRUE if the newly created timer has to be persistent
-     * @param \TechDivision\EnterpriseBeans\MethodInterface    $timeoutMethod The timeout method to be invoked
+     * @param \TechDivision\Lang\Reflection\MethodInterface    $timeoutMethod The timeout method to be invoked
      *
      * @return \TechDivision\EnterpriseBeans\TimerInterface The newly created Timer.
      * @throws \TechDivision\EnterpriseBeans\EnterpriseBeansException If this method could not complete due to a system-level failure.

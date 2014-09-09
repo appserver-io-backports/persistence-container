@@ -27,7 +27,7 @@ namespace TechDivision\PersistenceContainer\Annotations;
  * @license    http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * @link       http://www.appserver.io
  */
-class PreDestroy implements AnnotationInterface
+class PreDestroy extends AbstractSerializableAnnotation
 {
 
     /**
@@ -36,17 +36,4 @@ class PreDestroy implements AnnotationInterface
      * @var string
      */
     const ANNOTATION = 'predestroy';
-
-    /**
-     * The constructor the initializes the instance with the
-     * data passed with the token.
-     *
-     * @param \stdClass $token A simple token object
-     */
-    public function __construct(\stdClass $token)
-    {
-        foreach ($token->values as $member => $value) {
-            $this->$member = $value;
-        }
-    }
 }

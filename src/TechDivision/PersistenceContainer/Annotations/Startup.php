@@ -1,7 +1,7 @@
 <?php
 
 /**
- * TechDivision\PersistenceContainer\Annotations\PostConstruct
+ * TechDivision\PersistenceContainer\Annotations\Startup
  *
  * PHP version 5
  *
@@ -17,7 +17,7 @@
 namespace TechDivision\PersistenceContainer\Annotations;
 
 /**
- * Annotation implementation representing a @PostConstruct annotation on a bean method.
+ * Annotation implementation representing a @Startup annotation on a bean.
  *
  * @category   Library
  * @package    TechDivision_PersistenceContainer
@@ -27,13 +27,13 @@ namespace TechDivision\PersistenceContainer\Annotations;
  * @license    http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * @link       http://www.appserver.io
  */
-class PostConstruct extends AbstractSerializableAnnotation
+class Startup extends AbstractSerializableAnnotation
 {
 
     /**
-     * The annotation for a method that has to be invoked after the instance has been created.
+     * The annotation for a bean that has to be loaded with the application server start.
      *
      * @var string
      */
-    const ANNOTATION = 'postconstruct';
+    const ANNOTATION = 'startup';
 }

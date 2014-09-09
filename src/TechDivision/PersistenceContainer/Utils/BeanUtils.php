@@ -34,6 +34,11 @@ use TechDivision\PersistenceContainer\TimedObjectInvoker;
 use TechDivision\PersistenceContainer\Annotations\PostConstruct;
 use TechDivision\PersistenceContainer\Annotations\PreDestroy;
 use TechDivision\PersistenceContainer\Annotations\Timeout;
+use TechDivision\PersistenceContainer\Annotations\MessageDriven;
+use TechDivision\PersistenceContainer\Annotations\Startup;
+use TechDivision\PersistenceContainer\Annotations\Stateful;
+use TechDivision\PersistenceContainer\Annotations\Stateless;
+use TechDivision\PersistenceContainer\Annotations\Singleton;
 
 /**
  * Utility class with some bean utilities.
@@ -48,41 +53,6 @@ use TechDivision\PersistenceContainer\Annotations\Timeout;
  */
 class BeanUtils extends GenericStackable implements Context
 {
-
-    /**
-     * The key for a stateful session bean.
-     *
-     * @var string
-     */
-    const STATEFUL = 'stateful';
-
-    /**
-     * The key for a stateless session bean.
-     *
-     * @var string
-     */
-    const STATELESS = 'stateless';
-
-    /**
-     * The key for a singleton session bean.
-     *
-     * @var string
-     */
-    const SINGLETON = 'singleton';
-
-    /**
-     * The key for a message bean.
-     *
-     * @var string
-     */
-    const MESSAGEDRIVEN = 'messagedriven';
-
-    /**
-     * The key for a singleton session bean that has to be started after deployment.
-     *
-     * @var string
-     */
-    const STARTUP = 'startup';
 
     /**
      * Registers the value with the passed key in the container.
@@ -220,10 +190,11 @@ class BeanUtils extends GenericStackable implements Context
 
         // defines the available bean annotations
         $beanAnnotations = array(
-            BeanUtils::SINGLETON,
-            BeanUtils::STATEFUL,
-            BeanUtils::STATELESS,
-            BeanUtils::MESSAGEDRIVEN
+            MessageDriven::ANNOTATION,
+            Stateful::ANNOTATION,
+            Stateless::ANNOTATION,
+            Singleton::ANNOTATION,
+            Startup::ANNOTATION
         );
 
         // iterate over the tokens
@@ -306,7 +277,7 @@ class BeanUtils extends GenericStackable implements Context
 
         // initialize the annotation tokenizer
         $tokenizer = new Tokenizer();
-        $tokenizer->ignore(array('author', 'package', 'license', 'copyright'));
+        $tokenizer->ignore(array('param', 'return', 'throws', 'see', 'link'));
 
         // set the aliases
         $aliases = array();
@@ -335,12 +306,67 @@ class BeanUtils extends GenericStackable implements Context
     }
 
     /**
-     * Returns the method annotation for the passed reflection method, that can be
-     * one of PostConstruct or PreDestroy.
+     * Returns an array with the bean annotations for the passed reflection class.
      *
-     * @param \ReflectionMethod $reflectionMethod The method to return the annotation for
+     * @param \ReflectionClass $reflectionClass The bean to return the annotations for
      *
-     * @return string|null The found method annotation
+     * @return array The found bean annotations
+     */
+    public function getBeanAnnotations(\ReflectionClass $reflectionClass)
+    {
+
+        // initialize the array with the found annotations
+        $annotationsFound = array();
+
+        // initialize the annotation tokenizer
+        $tokenizer = new Tokenizer();
+        $tokenizer->ignore(array('author', 'package', 'license', 'copyright'));
+        $aliases = array();
+
+        // parse the doc block
+        $parsed = $tokenizer->parse($reflectionClass->getDocComment(), $aliases);
+
+        // convert tokens and return one
+        $tokens = new Tokens($parsed);
+        $toArray = new ToArray();
+
+        // defines the available method annotations
+        $beanAnnotations = array(
+            MessageDriven::ANNOTATION,
+            Stateful::ANNOTATION,
+            Stateless::ANNOTATION,
+            Singleton::ANNOTATION,
+            Startup::ANNOTATION
+        );
+
+        // iterate over the tokens
+        foreach ($toArray->convert($tokens) as $token) {
+
+            // prepare the annotation name
+            $annotationName = strtolower($token->name);
+
+            // check if the passed token name equals the requested one
+            if (in_array($annotationName, $beanAnnotations)) {
+
+                // prepare the name of the annotation class
+                $annotationClass = sprintf('TechDivision\\PersistenceContainer\\Annotations\\%s', $token->name);
+
+                // create a new instance, initialize and return it
+                $reflectionClass = new \ReflectionClass($annotationClass);
+                $annotationsFound[$annotationName] = $reflectionClass->newInstance($token);
+            }
+        }
+
+        // returns the array with the found annotations
+        return $annotationsFound;
+    }
+
+    /**
+     * Returns an array with the method annotations for the passed reflection method.
+     *
+     * @param \ReflectionMethod $reflectionMethod The method to return the annotations for
+     *
+     * @return array The found method annotations
      */
     public function getMethodAnnotations(\ReflectionMethod $reflectionMethod)
     {

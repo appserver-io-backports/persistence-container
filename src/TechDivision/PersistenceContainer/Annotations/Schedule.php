@@ -42,7 +42,7 @@ use TechDivision\EnterpriseBeans\ScheduleExpression;
  * @license    http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * @link       http://www.appserver.io
  */
-class Schedule implements AnnotationInterface
+class Schedule extends AbstractSerializableAnnotation
 {
 
     /**
@@ -51,56 +51,6 @@ class Schedule implements AnnotationInterface
      * @var string
      */
     const ANNOTATION = 'schedule';
-
-    /**
-     * @var string
-     */
-    protected $dayOfMonth = "*";
-
-    /**
-     * @var string
-     */
-    protected $dayOfWeek = "*";
-
-    /**
-     * @var \DateTime
-     */
-    protected $end;
-
-    /**
-     * @var string
-     */
-    protected $hour = "0";
-
-    /**
-     * @var string
-     */
-    protected $minute = "0";
-
-    /**
-     * @var string
-     */
-    protected $month = "*";
-
-    /**
-     * @var string
-     */
-    protected $second = "0";
-
-    /**
-     * @var \DateTime
-     */
-    protected $start;
-
-    /**
-     * @var string
-     */
-    protected $timezone = "";
-
-    /**
-     * @var string
-     */
-    protected $year = "*";
 
     /**
      * The aliases to be replaced with valid CRON values.
@@ -127,7 +77,7 @@ class Schedule implements AnnotationInterface
             }
 
             // set the value
-            $this->$member = $value;
+            $this->values[$member] = $value;
         }
     }
 
@@ -138,7 +88,7 @@ class Schedule implements AnnotationInterface
      */
     public function getDayOfMonth()
     {
-        return $this->dayOfMonth;
+        return $this->values['dayOfMonth'];
     }
 
     /**
@@ -148,7 +98,7 @@ class Schedule implements AnnotationInterface
      */
     public function getDayOfWeek()
     {
-        return $this->dayOfWeek;
+        return $this->values['dayOfWeek'];
     }
 
     /**
@@ -158,7 +108,7 @@ class Schedule implements AnnotationInterface
      */
     public function getEnd()
     {
-        return $this->end;
+        return $this->values['end'];
     }
 
     /**
@@ -168,7 +118,7 @@ class Schedule implements AnnotationInterface
      */
     public function getHour()
     {
-        return $this->hour;
+        return $this->values['hour'];
     }
 
     /**
@@ -178,7 +128,7 @@ class Schedule implements AnnotationInterface
      */
     public function getMinute()
     {
-        return $this->minute;
+        return $this->values['minute'];
     }
 
     /**
@@ -188,7 +138,7 @@ class Schedule implements AnnotationInterface
      */
     public function getMonth()
     {
-        return $this->month;
+        return $this->values['month'];
     }
 
     /**
@@ -198,7 +148,7 @@ class Schedule implements AnnotationInterface
      */
     public function getSecond()
     {
-        return $this->second;
+        return $this->values['second'];
     }
 
     /**
@@ -208,7 +158,7 @@ class Schedule implements AnnotationInterface
      */
     public function getStart()
     {
-        return $this->start;
+        return $this->values['start'];
     }
 
     /**
@@ -218,7 +168,7 @@ class Schedule implements AnnotationInterface
      */
     public function getTimezone()
     {
-        return $this->timezone;
+        return $this->values['timezone'];
     }
 
     /**
@@ -228,7 +178,7 @@ class Schedule implements AnnotationInterface
      */
     public function getYear()
     {
-        return $this->year;
+        return $this->values['year'];
     }
 
     /**
