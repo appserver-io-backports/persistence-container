@@ -28,6 +28,7 @@ use TechDivision\EnterpriseBeans\NoMoreTimeoutsException;
 use TechDivision\EnterpriseBeans\NoSuchObjectLocalException;
 use TechDivision\EnterpriseBeans\TimerServiceInterface;
 use TechDivision\PersistenceContainer\Tasks\CalendarTimerTask;
+use TechDivision\Application\Interfaces\ApplicationInterface;
 
 /**
  * Represents a timer which is created out a calendar expression.
@@ -182,11 +183,13 @@ class CalendarTimer extends Timer
     /**
      * Returns the task which handles the timeouts of this timer.
      *
+     * @param \TechDivision\Application\Interfaces\ApplicationInterface $application The application instance
+     *
      * @return \TechDivision\PersistenceContainer\CalendarTimerTask The task
      */
-    protected function getTimerTask()
+    protected function getTimerTask(ApplicationInterface $application)
     {
-        return new CalendarTimerTask($this);
+        return new CalendarTimerTask($this, $application);
     }
 
     /**

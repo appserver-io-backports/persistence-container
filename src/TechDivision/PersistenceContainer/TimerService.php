@@ -95,6 +95,18 @@ class TimerService extends GenericStackable implements TimerServiceInterface, Se
     }
 
     /**
+     * Injects the storage for the scheduled timer tasks.
+     *
+     * @param \TechDivision\Storage\StorageInterface $scheduledTimerTasks The storage for the scheduled timer tasks
+     *
+     * @return void
+     */
+    public function injectScheduledTimerTasks(StorageInterface $scheduledTimerTasks)
+    {
+        $this->scheduledTimerTasks = $scheduledTimerTasks;
+    }
+
+    /**
      * Injects the bean utilities we use.
      *
      * @param \TechDivision\PersistenceContainer\Utils\BeanUtils $beanUtils The bean utilities we use
@@ -214,13 +226,30 @@ class TimerService extends GenericStackable implements TimerServiceInterface, Se
             ->setNewTimer(true)
             ->build($this);
 
-        // $this->persistTimer($timer, true);
+        // persist the timer
+        $this->persistTimer($timer, true);
 
         // now "start" the timer. This involves, moving the timer to an ACTIVE state and scheduling the timer task
         $this->startTimer($timer);
 
         // return the timer
         return $timer;
+    }
+
+    /**
+     * Persists the passed timer.
+     *
+     * If the passed timer is null or is non-persistent (i.e. Timer::sPersistent() returns FALSE,
+     * then this method acts as a no-op.
+     *
+     * @param \TechDivision\EnterpriseBeans\TimerInterface $timer    The timer we want to persist
+     * @param boolean                                      $newTimer TRUE if this is a new timer being scheduled, and not a re-schedule due to a timeout
+     *
+     * @return void
+     */
+    public function persistTimer(TimerInterface $timer, $newTimer = true)
+    {
+        // @TODO: Still to implement
     }
 
     /**
@@ -253,9 +282,10 @@ class TimerService extends GenericStackable implements TimerServiceInterface, Se
             ->setTimedObjectId($this->getTimedObjectInvoker()->getTimedObjectId())
             ->build($this);
 
-        // $this->persistTimer($timer, true);
+        // persist the timer
+        $this->persistTimer($timer, true);
 
-        // now "start" the timer. This involves, moving the timer to an ACTIVE state and scheduling the timer task
+        // now 'start' the timer. This involves, moving the timer to an ACTIVE state and scheduling the timer task
         $this->startTimer($timer);
 
         // return the newly created timer
@@ -288,7 +318,7 @@ class TimerService extends GenericStackable implements TimerServiceInterface, Se
     }
 
     /**
-     * Creates and schedules a timer taks for the next timeout of the passed timer.
+     * Creates and schedules a timer task for the next timeout of the passed timer.
      *
      * @param \TechDivision\EnterpriseBeans\TimerInterface $timer    The timer we want to schedule a task for
      * @param boolean                                      $newTimer TRUE if this is a new timer being scheduled, and not a re-schedule due to a timeout
@@ -299,7 +329,7 @@ class TimerService extends GenericStackable implements TimerServiceInterface, Se
     {
 
         // check if this timer has been cancelled by another thread
-        if ($newTimer === false && $this->timers->has($timer->getId()) === false) {
+        if ($newTimer === false && $this->getTimers()->has($timer->getId()) === false) {
             return; // if yes, we just return
         }
 
@@ -309,7 +339,7 @@ class TimerService extends GenericStackable implements TimerServiceInterface, Se
         }
 
         // create the timer task and schedule it
-        $this->getTimerServiceExecutor()->schedule($timer->getTimerTask());
+        $this->getTimerServiceExecutor()->schedule($timer);
     }
 
     /**
@@ -346,7 +376,7 @@ class TimerService extends GenericStackable implements TimerServiceInterface, Se
      **/
     public function getTimers()
     {
-        return $this->timers;
+        return $this->getAllTimers();
     }
 
     /**
@@ -360,6 +390,16 @@ class TimerService extends GenericStackable implements TimerServiceInterface, Se
     public function getAllTimers()
     {
         return $this->timers;
+    }
+
+    /**
+     * Returns the scheduled timer tasks.
+     *
+     * @return \TechDivision\Storage\StorageInterface A collection of scheduled timer tasks
+     **/
+    public function getScheduledTimerTasks()
+    {
+        return $this->scheduledTimerTasks;
     }
 
     /**

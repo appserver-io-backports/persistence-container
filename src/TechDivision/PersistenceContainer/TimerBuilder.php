@@ -38,60 +38,81 @@ class TimerBuilder
 {
 
     /**
+     * The unique identifier of timer we want to create.
+     *
      * @var string
      */
     protected $id;
 
     /**
+     * The unique identifier of the timed object instance.
+     *
      * @var string
      */
     protected $timedObjectId;
 
     /**
+     * The date time fo the first timeout expiration.
+     *
      * @var \DateTime
      */
     protected $initialDate;
 
     /**
+     * The repeat interval between the expiration dates.
+     *
      * @var integer
      */
     protected $repeatInterval;
 
     /**
+     * The date time for the next expiration.
+     *
      * @var \DateTime
      */
     protected $nextDate;
 
     /**
+     * The date time of the previous run.
+     *
      * @var \DateTime
      */
     protected $previousRun;
 
     /**
+     * The serializable info passed to the timer.
+     *
      * @var \Serializable
      */
     protected $info;
 
     /**
+     * The state of the timer we want to create.
+     *
      * @var integer
      */
     protected $timerState;
 
     /**
+     * Whether we want to create a persistent timer.
+     *
      * @var boolean
      */
     protected $persistent;
 
     /**
+     * Whether we want to create a new timer or not.
+     *
      * @var boolean
      */
     protected $newTimer;
 
     /**
+     * Sets the unique identifier of timer we want to create.
      *
-     * @param string $id
+     * @param string $id The unique indentifier of the timer to be created
      *
-     * @return \TechDivision\PersistenceContainer\TimerBuilder
+     * @return \TechDivision\PersistenceContainer\TimerBuilder The instance itself
      */
     public function setId($id)
     {
@@ -100,10 +121,11 @@ class TimerBuilder
     }
 
     /**
+     * Sets the unique identifier of the timed object instance.
      *
-     * @param string $timedObjectId
+     * @param string $timedObjectId The unique identifier of the timed object instance
      *
-     * @return \TechDivision\PersistenceContainer\TimerBuilder
+     * @return \TechDivision\PersistenceContainer\TimerBuilder The instance itself
      */
     public function setTimedObjectId($timedObjectId)
     {
@@ -112,10 +134,11 @@ class TimerBuilder
     }
 
     /**
+     * The date time fo the first timeout expiration.
      *
-     * @param \DateTime $initialDate
+     * @param \DateTime $initialDate The date time for the first timeout expiration
      *
-     * @return \TechDivision\PersistenceContainer\TimerBuilder
+     * @return \TechDivision\PersistenceContainer\TimerBuilder The instance itself
      */
     public function setInitialDate(\DateTime $initialDate)
     {
@@ -124,10 +147,11 @@ class TimerBuilder
     }
 
     /**
+     * Sets the repeat interval between the expiration dates.
      *
-     * @param integer $repeatInterval
+     * @param integer $repeatInterval The repeat interval
      *
-     * @return \TechDivision\PersistenceContainer\TimerBuilder
+     * @return \TechDivision\PersistenceContainer\TimerBuilder The instance itself
      */
     public function setRepeatInterval($repeatInterval)
     {
@@ -136,10 +160,11 @@ class TimerBuilder
     }
 
     /**
+     * Sets the date time for the next expiration.
      *
-     * @param \DateTime $nextDate
+     * @param \DateTime $nextDate The date time for the next expiration
      *
-     * @return \TechDivision\PersistenceContainer\TimerBuilder
+     * @return \TechDivision\PersistenceContainer\TimerBuilder The instance itself
      */
     public function setNextDate(\DateTime $nextDate)
     {
@@ -148,10 +173,11 @@ class TimerBuilder
     }
 
     /**
+     * Sets the date time of the previous run.
      *
-     * @param \DateTime $previousRun
+     * @param \DateTime $previousRun The date time of the previous run
      *
-     * @return \TechDivision\PersistenceContainer\TimerBuilder
+     * @return \TechDivision\PersistenceContainer\TimerBuilder The instance itself
      */
     public function setPreviousRun(\DateTime $previousRun)
     {
@@ -160,10 +186,11 @@ class TimerBuilder
     }
 
     /**
+     * Sets the serializable info passed to the timer.
      *
-     * @param \Serializable $info
+     * @param \Serializable $info The serializable info passed to the timer
      *
-     * @return \TechDivision\PersistenceContainer\TimerBuilder
+     * @return \TechDivision\PersistenceContainer\TimerBuilder The instance itself
      */
     public function setInfo(\Serializable $info = null)
     {
@@ -172,10 +199,11 @@ class TimerBuilder
     }
 
     /**
+     * Sets the state of the timer we want to create.
      *
-     * @param integer $timerState
+     * @param integer $timerState The timer state
      *
-     * @return \TechDivision\PersistenceContainer\TimerBuilder
+     * @return \TechDivision\PersistenceContainer\TimerBuilder The instance itself
      */
     public function setTimerState($timerState)
     {
@@ -184,10 +212,11 @@ class TimerBuilder
     }
 
     /**
+     * Whether we want to create a persistent timer.
      *
-     * @param boolean $persistent
+     * @param boolean $persistent TRUE if we want to create a persistent timer, else FALSE
      *
-     * @return \TechDivision\PersistenceContainer\TimerBuilder
+     * @return \TechDivision\PersistenceContainer\TimerBuilder The instance itself
      */
     public function setPersistent($persistent)
     {
@@ -196,19 +225,22 @@ class TimerBuilder
     }
 
     /**
+     * Whether we want to create a new timer or not.
      *
-     * @param boolean $newTimer
+     * @param boolean $newTimer TRUE if we want to create a new timer, else NOT
      *
-     * @return \TechDivision\PersistenceContainer\TimerBuilder
+     * @return \TechDivision\PersistenceContainer\TimerBuilder The instance itself
      */
-    public function setNewTimer($newTimer) {
+    public function setNewTimer($newTimer)
+    {
         $this->newTimer = $newTimer;
         return $this;
     }
 
     /**
+     * Returns the unique identifier of timer we want to create.
      *
-     * @return string
+     * @return string The unique identifier of the timer
      */
     public function getId()
     {
@@ -216,8 +248,9 @@ class TimerBuilder
     }
 
     /**
+     * Returns the unique identifier of the timed object instance.
      *
-     * @return string
+     * @return string The unique identifier of the time object instance
      */
     public function getTimedObjectId()
     {
@@ -225,8 +258,9 @@ class TimerBuilder
     }
 
     /**
+     * Returns the date time fo the first timeout expiration.
      *
-     * @return \DateTime
+     * @return \DateTime The first timeout expiration
      */
     public function getInitialDate()
     {
@@ -234,8 +268,9 @@ class TimerBuilder
     }
 
     /**
+     * Returns the repeat interval between the expiration dates.
      *
-     * @return integer
+     * @return integer The repeat interval
      */
     public function getRepeatInterval()
     {
@@ -243,8 +278,9 @@ class TimerBuilder
     }
 
     /**
+     * Returns the date time for the next expiration.
      *
-     * @return \DateTime
+     * @return \DateTime The date time for the next expiration
      */
     public function getNextDate()
     {
@@ -252,8 +288,9 @@ class TimerBuilder
     }
 
     /**
+     * Returns the date time of the previous run.
      *
-     * @return \DateTime
+     * @return \DateTime The date time of the previous run
      */
     public function getPreviousRun()
     {
@@ -261,8 +298,9 @@ class TimerBuilder
     }
 
     /**
+     * Returns the serializable info passed to the timer.
      *
-     * @return \Serializable
+     * @return \Serializable The serializable info
      */
     public function getInfo()
     {
@@ -270,8 +308,9 @@ class TimerBuilder
     }
 
     /**
+     * Returns the state of the timer we want to create.
      *
-     * @return integer
+     * @return integer The timer state
      */
     public function getTimerState()
     {
@@ -279,8 +318,9 @@ class TimerBuilder
     }
 
     /**
+     * Queries whether we want to create a persistent timer.
      *
-     * @return boolean
+     * @return boolean TRUE if we want to create a persistent timer, else FALSE
      */
     public function isPersistent()
     {
@@ -288,8 +328,9 @@ class TimerBuilder
     }
 
     /**
+     * Queries whether we want to create a new timer.
      *
-     * @return boolean
+     * @return boolean TRUE if this is a new timer
      */
     public function isNewTimer()
     {
@@ -299,7 +340,7 @@ class TimerBuilder
     /**
      * Creates a new timer instance with the builders data.
      *
-     * @param \TechDivision\EnterpriseBeans\TimerServiceInterface The timer service
+     * @param \TechDivision\EnterpriseBeans\TimerServiceInterface $timerService The timer service
      *
      * @return \TechDivision\PersistenceContainer\Timer The initialized timer instance
      */

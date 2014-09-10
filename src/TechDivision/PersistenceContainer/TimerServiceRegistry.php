@@ -57,11 +57,11 @@ class TimerServiceRegistry extends ServiceRegistry implements TimerServiceContex
     public function initialize(ApplicationInterface $application)
     {
 
-        // create an instance of the bean utilities
-        $beanUtils = new BeanUtils();
-
         // register the class loader again, because each thread has its own context
         $application->registerClassLoaders();
+
+        // create an instance of the bean utilities
+        $beanUtils = new BeanUtils();
 
         // build up META-INF directory var
         $metaInfDir = $application->getWebappPath() . DIRECTORY_SEPARATOR .'META-INF';
@@ -112,11 +112,17 @@ class TimerServiceRegistry extends ServiceRegistry implements TimerServiceContex
                 $timedObjectInvoker->injectTimeoutMethods($timeoutMethods);
                 $timedObjectInvoker->start();
 
+                // initialize the stackable for the scheduled timer tasks
+                $scheduledTimerTasks = new StackableStorage();
+
+                // initialize the executor for the scheduled timer tasks
+                $timerServiceExecutor = new TimerServiceExecutor();
+                $timerServiceExecutor->injectApplication($application);
+                $timerServiceExecutor->injectScheduledTimerTasks($scheduledTimerTasks);
+                $timerServiceExecutor->start();
+
                 // initialize the stackable for the timers
                 $timers = new StackableStorage();
-
-                // inject the timer service executor
-                $timerServiceExecutor = new TimerServiceExecutor();
 
                 // initialize the timer service
                 $timerService = new TimerService();

@@ -33,6 +33,7 @@ use TechDivision\EnterpriseBeans\TimedObjectInterface;
 use TechDivision\EnterpriseBeans\TimerServiceInterface;
 use TechDivision\PersistenceContainer\Tasks\TimerTask;
 use TechDivision\PersistenceContainer\Utils\TimerState;
+use TechDivision\Application\Interfaces\ApplicationInterface;
 
 /**
  * A timer implementation for single action and interval timers.
@@ -84,13 +85,6 @@ class Timer extends GenericStackable implements TimerInterface
     protected $persistent = true;
 
     /**
-     * TRUE if the timer has to be canceled.
-     *
-     * @var boolean
-     */
-    protected $cancel = false;
-
-    /**
      *  The first expiry of this timer.
      *
      * @var string
@@ -114,7 +108,7 @@ class Timer extends GenericStackable implements TimerInterface
     /**
      * The date of the previous run.
      *
-     * @var \DateTime
+     * @var string
      */
     protected $previousRun;
 
@@ -214,6 +208,18 @@ class Timer extends GenericStackable implements TimerInterface
     }
 
     /**
+     * Returns the previous run date.
+     *
+     * @return \DateTime|null The previous run date
+     */
+    public function getPreviousRun()
+    {
+        if ($this->previousRun != null) {
+            return \DateTime::createFromFormat(Timer::DATE_FORMAT, $this->previousRun);
+        }
+    }
+
+    /**
      * Sets the information associated with the timer at the time of creation.
      *
      * @param \Serializable $info The Serializable object that was passed in at timer creation.
@@ -234,7 +240,7 @@ class Timer extends GenericStackable implements TimerInterface
      **/
     public function cancel()
     {
-        $this->cancel = true;
+        $this->setTimerState(TimerState::CANCELED);
     }
 
     /**
@@ -278,7 +284,7 @@ class Timer extends GenericStackable implements TimerInterface
     {
 
         // throw an exception if timer has been canceled
-        if ($this->cancel === true) {
+        if ($this->isCanceled()) {
             throw new NoSuchObjectLocalException('Timer has been cancelled');
         }
 
@@ -395,11 +401,13 @@ class Timer extends GenericStackable implements TimerInterface
     /**
      * Returns the task which handles the timeouts of this timer.
      *
+     * @param \TechDivision\Application\Interfaces\ApplicationInterface $application The application instance
+     *
      * @return \TechDivision\PersistenceContainer\TimerTask The task
      */
-    protected function getTimerTask()
+    protected function getTimerTask(ApplicationInterface $application)
     {
-        return new TimerTask($this);
+        return new TimerTask($this, $application);
     }
 
     /**
@@ -422,6 +430,18 @@ class Timer extends GenericStackable implements TimerInterface
     public function setTimerState($timerState)
     {
         $this->timerState = $timerState;
+    }
+
+    /**
+     * Sets the previous run date.
+     *
+     * @param \DateTime $previousRun The previous run date
+     *
+     * @return void
+     */
+    public function setPreviousRun(\DateTime $previousRun)
+    {
+        $this->previousRun = $previousRun->format(Timer::DATE_FORMAT);
     }
 
     /**

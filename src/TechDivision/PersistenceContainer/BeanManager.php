@@ -190,7 +190,7 @@ class BeanManager extends GenericStackable implements BeanContext
                 // if we found a bean with @Singleton + @Startup annotation
                 if ($this->getBeanUtils()->hasBeanAnnotation($reflectionClass, Singleton::ANNOTATION) &&
                     $this->getBeanUtils()->hasBeanAnnotation($reflectionClass, Startup::ANNOTATION)) { // instanciate the bean
-                    $this->getResourceLocator()->lookup($this, $className, null, array($application));
+                    $this->getResourceLocator()->lookup($this, $reflectionClass->getName(), null, array($application));
                 }
 
             } catch (\Exception $e) { // if class can not be reflected continue with next class

@@ -24,7 +24,7 @@ namespace TechDivision\PersistenceContainer;
 use TechDivision\EnterpriseBeans\TimerServiceInterface;
 
 /**
- * Class Timer
+ * A build class that creates a calendar timer instance.
  *
  * @category  Library
  * @package   TechDivision_PersistenceContainer
@@ -38,70 +38,95 @@ class CalendarTimerBuilder extends TimerBuilder
 {
 
     /**
+     * The schedule expression for the second.
+     *
      * @var string
      */
     protected $scheduleExprSecond;
 
     /**
+     * The schedule expression for the minute.
+     *
      * @var string
      */
     protected $scheduleExprMinute;
 
     /**
+     * The schedule expression for the hour.
+     *
      * @var string
      */
     protected $scheduleExprHour;
 
     /**
+     * The schedule expression for the day of week.
+     *
      * @var string
      */
     protected $scheduleExprDayOfWeek;
 
     /**
+     * The schedule expression for the day of month.
+     *
      * @var string
      */
     protected $scheduleExprDayOfMonth;
 
     /**
+     * The schedule expression for the month.
+     *
      * @var string
      */
     protected $scheduleExprMonth;
 
     /**
+     * The schedule expression for the year.
+     *
      * @var string
      */
     protected $scheduleExprYear;
 
     /**
+     * The date time for the calendar timer start date.
+     *
      * @var \DateTime
      */
     protected $scheduleExprStartDate;
 
     /**
+     * The date time for the calendar timer end date.
+     *
      * @var \DateTime
      */
-    protected $cheduleExprEndDate;
+    protected $scheduleExprEndDate;
 
     /**
+     * The timezone for the calendar timer.
+     *
      * @var string
      */
     protected $scheduleExprTimezone;
 
     /**
+     * Whether the calendar timer will be a auto timer.
+     *
      * @var boolean
      */
     protected $autoTimer;
 
     /**
+     * The timeout method instance.
+     *
      * @var \TechDivision\PersistenceContainer\TimeoutMethod
      */
     protected $timeoutMethod;
 
     /**
+     * Sets the second expression for the calendar timer.
      *
-     * @param string $scheduleExprSecond
+     * @param string $scheduleExprSecond The second expression
      *
-     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder
+     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder The instance itself
      */
     public function setScheduleExprSecond($scheduleExprSecond)
     {
@@ -110,10 +135,11 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Sets the minute expression for the calendar timer.
      *
-     * @param string $scheduleExprMinute
+     * @param string $scheduleExprMinute The minute expression
      *
-     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder
+     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder The instance itself
      */
     public function setScheduleExprMinute($scheduleExprMinute)
     {
@@ -122,10 +148,11 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Sets the hour expression for the calendar timer.
      *
-     * @param string $scheduleExprHour
+     * @param string $scheduleExprHour The hour expression
      *
-     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder
+     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder The instance itself
      */
     public function setScheduleExprHour($scheduleExprHour)
     {
@@ -134,10 +161,11 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Returns the day of week expression for the calendar timer.
      *
-     * @param string $scheduleExprDayOfWeek
+     * @param string $scheduleExprDayOfWeek The day of week expression
      *
-     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder
+     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder The instance itself
      */
     public function setScheduleExprDayOfWeek($scheduleExprDayOfWeek)
     {
@@ -146,10 +174,11 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Sets the day of month expression for the calendar timer.
      *
-     * @param string $scheduleExprDayOfMonth
+     * @param string $scheduleExprDayOfMonth The day of month expression
      *
-     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder
+     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder The instance itself
      */
     public function setScheduleExprDayOfMonth($scheduleExprDayOfMonth)
     {
@@ -158,10 +187,11 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Sets the month expression for the calendar timer.
      *
-     * @param string $scheduleExprMonth
+     * @param string $scheduleExprMonth The month expression
      *
-     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder
+     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder The instance itself
      */
     public function setScheduleExprMonth($scheduleExprMonth)
     {
@@ -170,10 +200,11 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Sets the year expression for the calendar timer.
      *
-     * @param string $scheduleExprYear
+     * @param string $scheduleExprYear The year exrpession
      *
-     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder
+     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder The instance itself
      */
     public function setScheduleExprYear($scheduleExprYear)
     {
@@ -182,10 +213,11 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Sets the date time for the calendar end date.
      *
-     * @param \DateTime $scheduleExprStartDate
+     * @param \DateTime $scheduleExprStartDate The start date
      *
-     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder
+     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder The instance itself
      */
     public function setScheduleExprStartDate(\DateTime $scheduleExprStartDate)
     {
@@ -194,10 +226,11 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Sets the date time for the calendar end date.
      *
-     * @param \DateTime $scheduleExprEndDate
+     * @param \DateTime $scheduleExprEndDate The end date
      *
-     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder
+     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder The instance itself
      */
     public function setScheduleExprEndDate(\DateTime $scheduleExprEndDate)
     {
@@ -206,10 +239,11 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Sets the timezone for the calendar timer.
      *
-     * @param string $scheduleExprTimezone
+     * @param string $scheduleExprTimezone The timezone for the calendar timer
      *
-     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder
+     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder The instance itself
      */
     public function setScheduleExprTimezone($scheduleExprTimezone)
     {
@@ -218,21 +252,24 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Whether the calendar timer will be an auto timer or not.
      *
-     * @param boolean $autoTimer
+     * @param boolean $autoTimer TRUE fi the calendar timer will be an auto timer
      *
-     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder
+     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder The instance itself
      */
-    public function setAutoTimer($autoTimer) {
+    public function setAutoTimer($autoTimer)
+    {
         $this->autoTimer = $autoTimer;
         return $this;
     }
 
     /**
+     * Sets the timeout method instance.
      *
-     * @param \TechDivision\PersistenceContainer\TimeoutMethod $timeoutMethod
+     * @param \TechDivision\PersistenceContainer\TimeoutMethod $timeoutMethod The timeout method instance
      *
-     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder
+     * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder The instance itself
      */
     public function setTimeoutMethod(TimeoutMethod $timeoutMethod)
     {
@@ -241,8 +278,9 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Returns the second expression for the calendar timer.
      *
-     * @return string
+     * @return string The second expression
      */
     public function getScheduleExprSecond()
     {
@@ -250,8 +288,9 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Returns the minute expression for the calendar timer.
      *
-     * @return string
+     * @return string The minute expression
      */
     public function getScheduleExprMinute()
     {
@@ -259,8 +298,9 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Returns the hour expression for the calendar timer.
      *
-     * @return string
+     * @return string The hour expression
      */
     public function getScheduleExprHour()
     {
@@ -268,8 +308,9 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Returns the day of week expression for the calendar timer.
      *
-     * @return string
+     * @return string The day of week expression
      */
     public function getScheduleExprDayOfWeek()
     {
@@ -277,8 +318,9 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Returns the day of month expression for the calendar timer.
      *
-     * @return string
+     * @return string The day of month expression
      */
     public function getScheduleExprDayOfMonth()
     {
@@ -286,8 +328,9 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Returns the month expression for the calendar timer.
      *
-     * @return string
+     * @return string The month expression
      */
     public function getScheduleExprMonth()
     {
@@ -295,8 +338,9 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Returns the year expression for the calendar timer.
      *
-     * @return string
+     * @return string The year expression
      */
     public function getScheduleExprYear()
     {
@@ -304,8 +348,9 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * The date time for the calendar end date.
      *
-     * @return \DateTime
+     * @return \DateTime The end date
      */
     public function getScheduleExprStartDate()
     {
@@ -313,8 +358,9 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * The date time for the calendar timer start date.
      *
-     * @return \DateTime
+     * @return \DateTime The start date
      */
     public function getScheduleExprEndDate()
     {
@@ -322,8 +368,9 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Returns the timezone for the calendar timer.
      *
-     * @return string
+     * @return string The timezone for the calendar timer
      */
     public function getScheduleExprTimezone()
     {
@@ -331,8 +378,9 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Queries if the calendar timer will be a auto timer.
      *
-     * @return boolean
+     * @return boolean TRUE if calandar timer is an auto timer
      */
     public function isAutoTimer()
     {
@@ -340,8 +388,9 @@ class CalendarTimerBuilder extends TimerBuilder
     }
 
     /**
+     * Returns the timeout method instance.
      *
-     * @return \TechDivision\PersistenceContainer\TimeoutMethod
+     * @return \TechDivision\PersistenceContainer\TimeoutMethod The timeout method instance
      */
     public function getTimeoutMethod()
     {
@@ -351,7 +400,7 @@ class CalendarTimerBuilder extends TimerBuilder
     /**
      * Creates a new timer instance with the builders data.
      *
-     * @param \TechDivision\EnterpriseBeans\TimerServiceInterface The timer service
+     * @param \TechDivision\EnterpriseBeans\TimerServiceInterface $timerService The timer service
      *
      * @return \TechDivision\PersistenceContainer\CalendarTimer The initialized timer instance
      */

@@ -82,9 +82,9 @@ class Schedule extends AbstractSerializableAnnotation
     }
 
     /**
-     * Return's day of month
+     * Returns day of month.
      *
-     * @return string
+     * @return string The day of month
      */
     public function getDayOfMonth()
     {
@@ -92,9 +92,9 @@ class Schedule extends AbstractSerializableAnnotation
     }
 
     /**
-     * Return's day of week
+     * Returns day of week.
      *
-     * @return string
+     * @return string The day of week
      */
     public function getDayOfWeek()
     {
@@ -102,9 +102,9 @@ class Schedule extends AbstractSerializableAnnotation
     }
 
     /**
-     * Return's end datetime
+     * Returns end date time.
      *
-     * @return string
+     * @return string The last expiration date
      */
     public function getEnd()
     {
@@ -112,9 +112,9 @@ class Schedule extends AbstractSerializableAnnotation
     }
 
     /**
-     * Return's hour
+     * Returns the hour.
      *
-     * @return string
+     * @return string The hour
      */
     public function getHour()
     {
@@ -122,9 +122,9 @@ class Schedule extends AbstractSerializableAnnotation
     }
 
     /**
-     * Return's minute
+     * Returns the minute.
      *
-     * @return string
+     * @return string The minute
      */
     public function getMinute()
     {
@@ -132,9 +132,9 @@ class Schedule extends AbstractSerializableAnnotation
     }
 
     /**
-     * Return's month
+     * Returns the month.
      *
-     * @return string
+     * @return string The month
      */
     public function getMonth()
     {
@@ -142,9 +142,9 @@ class Schedule extends AbstractSerializableAnnotation
     }
 
     /**
-     * Return's second
+     * Returns the second.
      *
-     * @return string
+     * @return string The second
      */
     public function getSecond()
     {
@@ -152,9 +152,9 @@ class Schedule extends AbstractSerializableAnnotation
     }
 
     /**
-     * Return's start date time
+     * Returns start date time.
      *
-     * @return \DateTime
+     * @return \DateTime The initial expiration date
      */
     public function getStart()
     {
@@ -162,9 +162,9 @@ class Schedule extends AbstractSerializableAnnotation
     }
 
     /**
-     * Returns the timezone
+     * Returns the timezone.
      *
-     * @return null|string
+     * @return null|string The timezone
      */
     public function getTimezone()
     {
@@ -172,9 +172,9 @@ class Schedule extends AbstractSerializableAnnotation
     }
 
     /**
-     * Return's the year
+     * Returns the year.
      *
-     * @return string
+     * @return string The year
      */
     public function getYear()
     {
