@@ -1,3 +1,13 @@
+# Version 0.8.1
+
+## Bugfixes
+
+* Move composer dependency to techdivision/enterprisebeans from require-dev to require
+
+## Features
+
+* Issue #185: Add basic timer service functionality
+
 # Version 0.8.0
 
 ## Bugfixes
