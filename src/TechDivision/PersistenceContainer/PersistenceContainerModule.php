@@ -92,7 +92,7 @@ class PersistenceContainerModule extends ServletEngine
         // call parent init() method
         parent::init($serverContext);
 
-        // add a garbage collector for each application
+        // add a garbage collector and timer service workers for each application
         foreach ($this->getApplications() as $application) {
             $this->garbageCollectors[] = new StandardGarbageCollector($application);
         }

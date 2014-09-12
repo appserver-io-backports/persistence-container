@@ -1,7 +1,7 @@
 <?php
 
 /**
- * TechDivision\MessageQueue\QueueWorker
+ * TechDivision\PersistenceContainer\StandardGarbageCollector
  *
  * NOTICE OF LICENSE
  *

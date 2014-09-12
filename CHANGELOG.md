@@ -1,3 +1,13 @@
+# Version 0.8.0
+
+## Bugfixes
+
+* Bugfix invalid usage of passed class name instead of real class name, loaded from ReflectionClass in BeanLocator::lookup() method
+
+## Features
+
+* Issue #185: Add basic timer service functionality
+
 # Version 0.7.10
 
 ## Bugfixes

@@ -33,6 +33,13 @@ use TechDivision\PersistenceContainerProtocol\BeanContext;
 use TechDivision\PersistenceContainerProtocol\RemoteMethod;
 use TechDivision\Application\Interfaces\ApplicationInterface;
 use TechDivision\Application\Interfaces\ManagerConfigurationInterface;
+use TechDivision\PersistenceContainer\Annotations\PreDestroy;
+use TechDivision\PersistenceContainer\Annotations\PostConstruct;
+use TechDivision\PersistenceContainer\Annotations\Singleton;
+use TechDivision\PersistenceContainer\Annotations\Startup;
+use TechDivision\PersistenceContainer\Annotations\Stateful;
+use TechDivision\PersistenceContainer\Annotations\Stateless;
+use TechDivision\PersistenceContainer\Annotations\MessageDriven;
 
 /**
  * The bean manager handles the message and session beans registered for the application.
@@ -181,9 +188,9 @@ class BeanManager extends GenericStackable implements BeanContext
                 $reflectionClass = new \ReflectionClass($className);
 
                 // if we found a bean with @Singleton + @Startup annotation
-                if ($this->getBeanUtils()->hasBeanAnnotation($reflectionClass, BeanUtils::SINGLETON) &&
-                    $this->getBeanUtils()->hasBeanAnnotation($reflectionClass, BeanUtils::STARTUP)) { // instanciate the bean
-                    $this->getResourceLocator()->lookup($this, $className, null, array($application));
+                if ($this->getBeanUtils()->hasBeanAnnotation($reflectionClass, Singleton::ANNOTATION) &&
+                    $this->getBeanUtils()->hasBeanAnnotation($reflectionClass, Startup::ANNOTATION)) { // instanciate the bean
+                    $this->getResourceLocator()->lookup($this, $reflectionClass->getName(), null, array($application));
                 }
 
             } catch (\Exception $e) { // if class can not be reflected continue with next class
@@ -355,7 +362,7 @@ class BeanManager extends GenericStackable implements BeanContext
         foreach ($reflectionObject->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
 
             // if we found a @PreDestroy annotation, invoke the method
-            if (BeanUtils::PRE_DESTROY === $this->getBeanUtils()->getMethodAnnotation($reflectionMethod)) {
+            if (PreDestroy::ANNOTATION === $this->getBeanUtils()->getMethodAnnotation($reflectionMethod)) {
                 $reflectionMethod->invoke($instance); // method MUST have no parameters
             }
         }
@@ -379,7 +386,7 @@ class BeanManager extends GenericStackable implements BeanContext
         // check what kind of bean we have
         switch ($beanType = $this->getBeanUtils()->getBeanAnnotation($reflectionObject)) {
 
-            case BeanUtils::STATEFUL: // @Stateful
+            case Stateful::ANNOTATION: // @Stateful
 
                 // check if we've a session-ID available
                 if ($sessionId == null) {
@@ -403,15 +410,12 @@ class BeanManager extends GenericStackable implements BeanContext
 
                 break;
 
-            case BeanUtils::SINGLETON: // @Singleton
-
-                // re-attach the bean to the container
-                $this->getSingletonSessionBeans()->set($reflectionObject->getName(), $instance);
+            case Singleton::ANNOTATION: // @Singleton
 
                 break;
 
-            case BeanUtils::STATELESS: // @Stateless
-            case BeanUtils::MESSAGEDRIVEN: // @MessageDriven
+            case Stateless::ANNOTATION: // @Stateless
+            case MessageDriven::ANNOTATION: // @MessageDriven
 
                 // simply destroy the instance
                 $this->destroyBeanInstance($instance);
@@ -471,7 +475,6 @@ class BeanManager extends GenericStackable implements BeanContext
      * @param array  $args      Arguments to pass to the constructor of the instance
      *
      * @return object The instance itself
-     * @todo Has to be refactored to avoid registering autoloader on every call
      */
     public function newInstance($className, array $args = array())
     {
@@ -484,7 +487,7 @@ class BeanManager extends GenericStackable implements BeanContext
         foreach ($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
 
             // if we found a @PostConstruct annotation, invoke the method
-            if (BeanUtils::POST_CONSTRUCT === $this->getBeanUtils()->getMethodAnnotation($reflectionMethod)) {
+            if (PostConstruct::ANNOTATION === $this->getBeanUtils()->getMethodAnnotation($reflectionMethod)) {
                 $reflectionMethod->invoke($instance); // method MUST has no parameters
             }
         }
