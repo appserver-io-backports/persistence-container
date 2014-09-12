@@ -2,7 +2,7 @@
 
 ## Bugfixes
 
-* None
+* Bugfix invalid usage of passed class name instead of real class name, loaded from ReflectionClass in BeanLocator::lookup() method
 
 ## Features
 

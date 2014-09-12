@@ -87,37 +87,40 @@ class BeanLocator implements ResourceLocator
         // get the reflection class for the passed class name
         $reflectionClass = $beanManager->newReflectionClass($className);
 
+        // we need the real class name
+        $realClassName = $reflectionClass->getName();
+
         // check what kind of bean we have
         switch ($beanType = $beanManager->getBeanUtils()->getBeanAnnotation($reflectionClass)) {
 
             case Stateful::ANNOTATION: // @Stateful
 
                 // try to load the stateful session bean from the bean manager
-                if ($instance = $beanManager->lookupStatefulSessionBean($sessionId, $className)) {
+                if ($instance = $beanManager->lookupStatefulSessionBean($sessionId, $realClassName)) {
                     return $instance;
                 }
 
                 // if not create a new instance and return it
-                return $beanManager->newInstance($className, $args);
+                return $beanManager->newInstance($realClassName, $args);
                 break;
 
             case Singleton::ANNOTATION: // @Singleton
 
                 // try to load the singleton session bean from the bean manager
-                if ($instance = $beanManager->lookupSingletonSessionBean($className)) {
+                if ($instance = $beanManager->lookupSingletonSessionBean($realClassName)) {
                     return $instance;
                 }
 
                 // singleton session beans MUST extends \Stackable
-                if (is_subclass_of($className, '\Stackable') === false) {
-                    throw new \Exception(sprintf('Singleton session bean %s MUST extend \Stackable', $className));
+                if (is_subclass_of($realClassName, '\Stackable') === false) {
+                    throw new \Exception(sprintf('Singleton session bean %s MUST extend \Stackable', $realClassName));
                 }
 
                 // if not create a new instance and return it
-                $instance = $beanManager->newInstance($className, $args);
+                $instance = $beanManager->newInstance($realClassName, $args);
 
                 // add the singleton session bean to the container
-                $beanManager->getSingletonSessionBeans()->set($className, $instance) ;
+                $beanManager->getSingletonSessionBeans()->set($realClassName, $instance) ;
 
                 // return the instance
                 return $instance;
@@ -127,7 +130,7 @@ class BeanLocator implements ResourceLocator
             case MessageDriven::ANNOTATION: // @MessageDriven
 
                 // if not create a new instance and return it
-                return $beanManager->newInstance($className, $args);
+                return $beanManager->newInstance($realClassName, $args);
                 break;
 
             default: // this should never happen
