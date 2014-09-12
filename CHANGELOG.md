@@ -1,4 +1,4 @@
-# Version 0.7.11
+# Version 0.8.0
 
 ## Bugfixes
 
