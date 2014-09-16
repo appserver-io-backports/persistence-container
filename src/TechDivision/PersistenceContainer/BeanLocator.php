@@ -23,7 +23,6 @@
 namespace TechDivision\PersistenceContainer;
 
 use TechDivision\PersistenceContainer\BeanManager;
-use TechDivision\PersistenceContainer\Utils\BeanUtils;
 use TechDivision\PersistenceContainerProtocol\RemoteMethod;
 use TechDivision\PersistenceContainer\Annotations\Stateful;
 use TechDivision\PersistenceContainer\Annotations\Singleton;
@@ -79,21 +78,19 @@ class BeanLocator implements ResourceLocator
      * @param array                                          $args        The arguments passed to the session beans constructor
      *
      * @return object The requested session bean
-     * @throws \Exception Is thrown if passed class name is no session bean or is a entity bean (not implmented yet)
+     * @throws \TechDivision\PersistenceContainer\InvalidBeanTypeException Is thrown if passed class name is no session bean or is a entity bean (not implmented yet)
      */
     public function lookup(BeanManager $beanManager, $className, $sessionId = null, array $args = array())
     {
 
-        // get the reflection class for the passed class name
-        $reflectionClass = $beanManager->newReflectionClass($className);
+        // the real class name of the requested bean
+        if ($realClassName = $beanManager->getNamingDirectory()->get($className)) {
 
-        // we need the real class name
-        $realClassName = $reflectionClass->getName();
+            // get the reflection class for the passed class name
+            $reflectionClass = $beanManager->newReflectionClass($realClassName);
 
-        // check what kind of bean we have
-        switch ($beanType = $beanManager->getBeanUtils()->getBeanAnnotation($reflectionClass)) {
-
-            case Stateful::ANNOTATION: // @Stateful
+            // @Stateful
+            if ($reflectionClass->hasAnnotation(Stateful::ANNOTATION)) {
 
                 // try to load the stateful session bean from the bean manager
                 if ($instance = $beanManager->lookupStatefulSessionBean($sessionId, $realClassName)) {
@@ -102,9 +99,10 @@ class BeanLocator implements ResourceLocator
 
                 // if not create a new instance and return it
                 return $beanManager->newInstance($realClassName, $args);
-                break;
+            }
 
-            case Singleton::ANNOTATION: // @Singleton
+            // @Singleton
+            if ($reflectionClass->hasAnnotation(Singleton::ANNOTATION)) {
 
                 // try to load the singleton session bean from the bean manager
                 if ($instance = $beanManager->lookupSingletonSessionBean($realClassName)) {
@@ -124,19 +122,21 @@ class BeanLocator implements ResourceLocator
 
                 // return the instance
                 return $instance;
-                break;
+            }
 
-            case Stateless::ANNOTATION: // @Stateless
-            case MessageDriven::ANNOTATION: // @MessageDriven
+            // @Stateless or // @MessageDriven
+            if ($reflectionClass->hasAnnotation(Stateless::ANNOTATION) ||
+                $reflectionClass->hasAnnotation(MessageDriven::ANNOTATION)) {
 
                 // if not create a new instance and return it
                 return $beanManager->newInstance($realClassName, $args);
-                break;
+            }
 
-            default: // this should never happen
-
-                throw new InvalidBeanTypeException(sprintf('Try to lookup invalid bean type \'%s\'', $beanType));
-                break;
+            // we've an unknown bean type => throw an exception
+            throw new InvalidBeanTypeException(sprintf('Try to lookup a bean %s with missing enterprise annotation', $className));
         }
+
+        // we can't lookup the passed class name, because naming directory doesn't has the class registered
+        throw new InvalidBeanTypeException(sprintf('Try to lookup not registered bean %s', $className));
     }
 }

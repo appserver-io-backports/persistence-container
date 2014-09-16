@@ -31,10 +31,9 @@ use TechDivision\EnterpriseBeans\TimerInterface;
 use TechDivision\EnterpriseBeans\ScheduleExpression;
 use TechDivision\EnterpriseBeans\TimerServiceInterface;
 use TechDivision\EnterpriseBeans\TimedObjectInvokerInterface;
-use TechDivision\PersistenceContainer\Utils\BeanUtils;
+use TechDivision\PersistenceContainer\Utils\TimerState;
 use TechDivision\PersistenceContainer\Annotations\Schedule;
 use TechDivision\PersistenceContainerProtocol\RemoteMethodCall;
-use TechDivision\PersistenceContainer\Utils\TimerState;
 
 /**
  * The timer service implementation providing functionality to handle timers.
@@ -104,18 +103,6 @@ class TimerService extends GenericStackable implements TimerServiceInterface, Se
     public function injectScheduledTimerTasks(StorageInterface $scheduledTimerTasks)
     {
         $this->scheduledTimerTasks = $scheduledTimerTasks;
-    }
-
-    /**
-     * Injects the bean utilities we use.
-     *
-     * @param \TechDivision\PersistenceContainer\Utils\BeanUtils $beanUtils The bean utilities we use
-     *
-     * @return void
-     */
-    public function injectBeanUtils(BeanUtils $beanUtils)
-    {
-        $this->beanUtils = $beanUtils;
     }
 
     /**
@@ -353,10 +340,17 @@ class TimerService extends GenericStackable implements TimerServiceInterface, Se
         // load the timeout methods annotated with @Schedule
         foreach ($this->getTimedObjectInvoker()->getTimeoutMethods() as $timeoutMethod) {
 
-            if ($timeoutMethod instanceof TimeoutMethod) { // make sure we've a timeout method
+            if ($timeoutMethod instanceof MethodInterface) { // make sure we've a timeout method
 
                 // create the schedule expression from the timeout methods @Schedule annotation
-                $schedule = $timeoutMethod->getAnnotation(Schedule::ANNOTATION)->toScheduleExpression();
+                $reflectionAnnotation = $timeoutMethod->getAnnotation(Schedule::ANNOTATION);
+
+                // load the data to create the schedule annotation instance
+                $annotationName = $reflectionAnnotation->getAnnotationName();
+                $values = $reflectionAnnotation->getValues();
+
+                // create the schedule annotation instance with the loaded data
+                $schedule = $reflectionAnnotation->newInstance($annotationName, $values)->toScheduleExpression();
 
                 // create and add a new calendar timer
                 $this->createCalendarTimer($schedule, null, true, $timeoutMethod);
@@ -400,16 +394,6 @@ class TimerService extends GenericStackable implements TimerServiceInterface, Se
     public function getScheduledTimerTasks()
     {
         return $this->scheduledTimerTasks;
-    }
-
-    /**
-     * Returns the bean utilties.
-     *
-     * @return \TechDivision\PersistenceContainer\Utils\BeanUtils The bean utilities.
-     */
-    public function getBeanUtils()
-    {
-        return $this->beanUtils;
     }
 
     /**

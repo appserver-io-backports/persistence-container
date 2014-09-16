@@ -28,18 +28,23 @@ use TechDivision\Collections\HashMap;
 use TechDivision\Storage\StorageInterface;
 use TechDivision\Storage\GenericStackable;
 use TechDivision\Storage\StackableStorage;
-use TechDivision\PersistenceContainer\Utils\BeanUtils;
 use TechDivision\PersistenceContainerProtocol\BeanContext;
 use TechDivision\PersistenceContainerProtocol\RemoteMethod;
 use TechDivision\Application\Interfaces\ApplicationInterface;
 use TechDivision\Application\Interfaces\ManagerConfigurationInterface;
+use TechDivision\PersistenceContainer\Annotations\MessageDriven;
 use TechDivision\PersistenceContainer\Annotations\PreDestroy;
 use TechDivision\PersistenceContainer\Annotations\PostConstruct;
 use TechDivision\PersistenceContainer\Annotations\Singleton;
 use TechDivision\PersistenceContainer\Annotations\Startup;
 use TechDivision\PersistenceContainer\Annotations\Stateful;
 use TechDivision\PersistenceContainer\Annotations\Stateless;
-use TechDivision\PersistenceContainer\Annotations\MessageDriven;
+use TechDivision\PersistenceContainer\Annotations\Schedule;
+use TechDivision\PersistenceContainer\Annotations\Timeout;
+use TechDivision\Lang\Reflection\ClassInterface;
+use TechDivision\Lang\Reflection\ReflectionClass;
+use TechDivision\Lang\Reflection\ReflectionObject;
+use TechDivision\Lang\Reflection\AnnotationInterface;
 
 /**
  * The bean manager handles the message and session beans registered for the application.
@@ -89,6 +94,18 @@ class BeanManager extends GenericStackable implements BeanContext
     }
 
     /**
+     * Injects the storage for the naming directory.
+     *
+     * @param \TechDivision\Storage\StorageInterface $namingDirectory The storage for the naming directory
+     *
+     * @return void
+     */
+    public function injectNamingDirectory(StorageInterface $namingDirectory)
+    {
+        $this->namingDirectory = $namingDirectory;
+    }
+
+    /**
      * Injects the storage for the stateful session beans.
      *
      * @param \TechDivision\Storage\StorageInterface $statefulSessionBeans The storage for the stateful session beans
@@ -122,18 +139,6 @@ class BeanManager extends GenericStackable implements BeanContext
     public function injectStatefulSessionBeanSettings(StatefulSessionBeanSettings $statefulSessionBeanSettings)
     {
         $this->statefulSessionBeanSettings = $statefulSessionBeanSettings;
-    }
-
-    /**
-     * Injects the bean utilities we use.
-     *
-     * @param \TechDivision\PersistenceContainer\Utils\BeanUtils $beanUtils The bean utilities we use
-     *
-     * @return void
-     */
-    public function injectBeanUtils(BeanUtils $beanUtils)
-    {
-        $this->beanUtils = $beanUtils;
     }
 
     /**
@@ -185,12 +190,15 @@ class BeanManager extends GenericStackable implements BeanContext
                 $className = substr($pregResult, 0, -4);
 
                 // we need a reflection class to read the annotations
-                $reflectionClass = new \ReflectionClass($className);
+                $reflectionClass = $this->newReflectionClass($className);
+
+                // register the bean instance
+                $this->registerBean($reflectionClass);
 
                 // if we found a bean with @Singleton + @Startup annotation
-                if ($this->getBeanUtils()->hasBeanAnnotation($reflectionClass, Singleton::ANNOTATION) &&
-                    $this->getBeanUtils()->hasBeanAnnotation($reflectionClass, Startup::ANNOTATION)) { // instanciate the bean
-                    $this->getResourceLocator()->lookup($this, $reflectionClass->getName(), null, array($application));
+                if ($reflectionClass->hasAnnotation(Singleton::ANNOTATION) &&
+                    $reflectionClass->hasAnnotation(Startup::ANNOTATION)) { // instanciate the bean
+                    $this->getResourceLocator()->lookup($this, $reflectionClass->getShortName(), null, array($application));
                 }
 
             } catch (\Exception $e) { // if class can not be reflected continue with next class
@@ -202,6 +210,77 @@ class BeanManager extends GenericStackable implements BeanContext
                 continue;
             }
         }
+    }
+
+    /**
+     * Register the bean, defined by the passed reflection class instance.
+     *
+     * @param \TechDivision\Lang\Reflection\ClassInterface $reflectionClass The reflection class instance of the bean we want to register
+     *
+     * @return void
+     */
+    public function registerBean(ClassInterface $reflectionClass)
+    {
+
+        // declare the local variable for the reflection annotation instance
+        $reflectionAnnotation = null;
+
+        // if we found an enterprise bean with either a @Singleton annotation
+        if ($reflectionClass->hasAnnotation(Singleton::ANNOTATION)) {
+            $reflectionAnnotation = $reflectionClass->getAnnotation(Singleton::ANNOTATION);
+        }
+
+        // if we found an enterprise bean with either a @Stateless annotation
+        if ($reflectionClass->hasAnnotation(Stateless::ANNOTATION)) {
+            $reflectionAnnotation = $reflectionClass->getAnnotation(Stateless::ANNOTATION);
+        }
+
+        // if we found an enterprise bean with either a @Stateful annotation
+        if ($reflectionClass->hasAnnotation(Stateful::ANNOTATION)) {
+            $reflectionAnnotation = $reflectionClass->getAnnotation(Stateful::ANNOTATION);
+        }
+
+        // if we found an enterprise bean with either a @MessageDriven annotation
+        if ($reflectionClass->hasAnnotation(MessageDriven::ANNOTATION)) {
+            $reflectionAnnotation = $reflectionClass->getAnnotation(MessageDriven::ANNOTATION);
+        }
+
+        // can't register the bean, because of a missing enterprise bean annotation
+        if ($reflectionAnnotation == null) {
+            return;
+        }
+
+        // create the annotation and real PHP reflection class instance
+        $annotationInstance = $this->newAnnotationInstance($reflectionAnnotation);
+
+        // load class name and short class name
+        $className = $reflectionClass->getName();
+        $shortClassName = $reflectionClass->getShortName();
+
+        // register the bean with the real class name (without namespace)
+        $this->getNamingDirectory()->set($shortClassName, $className);
+
+        // register the bean with the name defined as @Annotation(name=****)
+        if ($name = $annotationInstance->getName()) {
+            $this->getNamingDirectory()->set($name, $className);
+        }
+
+        // register the bean with the name defined as @Annotation(mappedName=****)
+        if ($mappedName = $annotationInstance->getMappedName()) {
+            $this->getNamingDirectory()->set($mappedName, $className);
+        }
+    }
+
+    /**
+     * Creates a new new instance of the annotation type, defined in the passed reflection annotation.
+     *
+     * @param \TechDivision\Lang\Reflection\AnnotationInterface $annotation The reflection annotation we want to create the instance for
+     *
+     * @return \TechDivision\Lang\Reflection\AnnotationInterface The real annotation instance
+     */
+    protected function newAnnotationInstance(AnnotationInterface $annotation)
+    {
+        return $annotation->newInstance($annotation->getAnnotationName(), $annotation->getValues());
     }
 
     /**
@@ -222,6 +301,16 @@ class BeanManager extends GenericStackable implements BeanContext
     public function getResourceLocator()
     {
         return $this->resourceLocator;
+    }
+
+    /**
+     * Return the storage with the naming directory.
+     *
+     * @return \TechDivision\Storage\StorageInterface The storage with the naming directory
+     */
+    public function getNamingDirectory()
+    {
+        return $this->namingDirectory;
     }
 
     /**
@@ -252,16 +341,6 @@ class BeanManager extends GenericStackable implements BeanContext
     public function getStatefulSessionBeanSettings()
     {
         return $this->statefulSessionBeanSettings;
-    }
-
-    /**
-     * Returns the bean utilties.
-     *
-     * @return \TechDivision\PersistenceContainer\Utils\BeanUtils The bean utilities.
-     */
-    public function getBeanUtils()
-    {
-        return $this->beanUtils;
     }
 
     /**
@@ -356,13 +435,13 @@ class BeanManager extends GenericStackable implements BeanContext
     {
 
         // we need a reflection object
-        $reflectionObject = new \ReflectionObject($instance);
+        $reflectionObject = new ReflectionObject($instance);
 
         // we've to check for a @PreDestroy annotation
         foreach ($reflectionObject->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
 
             // if we found a @PreDestroy annotation, invoke the method
-            if (PreDestroy::ANNOTATION === $this->getBeanUtils()->getMethodAnnotation($reflectionMethod)) {
+            if ($reflectionMethod->hasAnnotation(PreDestroy::ANNOTATION)) {
                 $reflectionMethod->invoke($instance); // method MUST have no parameters
             }
         }
@@ -381,52 +460,53 @@ class BeanManager extends GenericStackable implements BeanContext
     {
 
         // we need a reflection object to read the annotations
-        $reflectionObject = new \ReflectionObject($instance);
+        $reflectionObject = new ReflectionObject($instance);
 
-        // check what kind of bean we have
-        switch ($beanType = $this->getBeanUtils()->getBeanAnnotation($reflectionObject)) {
+        // @Singleton
+        if ($reflectionObject->hasAnnotation(Singleton::ANNOTATION)) {
 
-            case Stateful::ANNOTATION: // @Stateful
-
-                // check if we've a session-ID available
-                if ($sessionId == null) {
-                    throw new \Exception('Can\'t find a session-ID to attach stateful session bean');
-                }
-
-                // initialize the map for the stateful session beans
-                if ($this->getStatefulSessionBeans()->has($sessionId) === false) {
-                    $this->getStatefulSessionBeans()->set($sessionId, new StatefulSessionBeanMap());
-                }
-
-                // load the lifetime from the session bean settings
-                $lifetime = $this->getStatefulSessionBeanSettings()->getLifetime();
-
-                // add the stateful session bean to the map
-                $sessions = $this->getStatefulSessionBeans()->get($sessionId);
-                $sessions->add($reflectionObject->getName(), $instance, $lifetime);
-
-                // re-attach the map with the stateful session beans to the container
-                $this->getStatefulSessionBeans()->set($sessionId, $sessions);
-
-                break;
-
-            case Singleton::ANNOTATION: // @Singleton
-
-                break;
-
-            case Stateless::ANNOTATION: // @Stateless
-            case MessageDriven::ANNOTATION: // @MessageDriven
-
-                // simply destroy the instance
-                $this->destroyBeanInstance($instance);
-
-                break;
-
-            default: // this should never happen
-
-                throw new InvalidBeanTypeException(sprintf('Try to attach invalid bean type \'%s\'', $beanType));
-                break;
+            // we don't have to attach singleton session beans, because they extends \Stackable
+            return;
         }
+
+        // @Stateful
+        if ($reflectionObject->hasAnnotation(Stateful::ANNOTATION)) {
+
+            // check if we've a session-ID available
+            if ($sessionId == null) {
+                throw new \Exception('Can\'t find a session-ID to attach stateful session bean');
+            }
+
+            // initialize the map for the stateful session beans
+            if ($this->getStatefulSessionBeans()->has($sessionId) === false) {
+                $this->getStatefulSessionBeans()->set($sessionId, new StatefulSessionBeanMap());
+            }
+
+            // load the lifetime from the session bean settings
+            $lifetime = $this->getStatefulSessionBeanSettings()->getLifetime();
+
+            // add the stateful session bean to the map
+            $sessions = $this->getStatefulSessionBeans()->get($sessionId);
+            $sessions->add($reflectionObject->getName(), $instance, $lifetime);
+
+            // re-attach the map with the stateful session beans to the container
+            $this->getStatefulSessionBeans()->set($sessionId, $sessions);
+
+            return;
+        }
+
+        // @Stateless or @MessageDriven
+        if ($reflectionObject->hasAnnotation(Stateless::ANNOTATION) ||
+            $reflectionObject->hasAnnotation(MessageDriven::ANNOTATION)) {
+
+            // simply destroy the instance
+            $this->destroyBeanInstance($instance);
+
+            return;
+        }
+
+        // we've an unknown bean type => throw an exception
+        throw new InvalidBeanTypeException('Try to attach bean with mission enterprise annotation');
     }
 
     /**
@@ -461,11 +541,39 @@ class BeanManager extends GenericStackable implements BeanContext
      *
      * @param string $className The class name to return the reflection instance for
      *
-     * @return \ReflectionClass The reflection instance
+     * @return \TechDivision\Lang\Reflection\ReflectionClass The reflection instance
      */
     public function newReflectionClass($className)
     {
-        return new \ReflectionClass($className);
+
+        // initialize the array with the annotations we want to ignore
+        $annotationsToIgnore = array(
+            'author',
+            'package',
+            'license',
+            'copyright',
+            'param',
+            'return',
+            'throws',
+            'see',
+            'link'
+        );
+
+        // initialize the array with the aliases for the enterprise bean annotations
+        $annotationAliases = array(
+            MessageDriven::ANNOTATION => MessageDriven::__getClass(),
+            PostConstruct::ANNOTATION => PostConstruct::__getClass(),
+            PreDestroy::ANNOTATION    => PreDestroy::__getClass(),
+            Schedule::ANNOTATION      => Schedule::__getClass(),
+            Singleton::ANNOTATION     => Singleton::__getClass(),
+            Startup::ANNOTATION       => Startup::__getClass(),
+            Stateful::ANNOTATION      => Stateful::__getClass(),
+            Stateless::ANNOTATION     => Stateless::__getClass(),
+            Timeout::ANNOTATION       => Timeout::__getClass()
+        );
+
+        // return the reflection class instance
+        return new ReflectionClass($className, $annotationsToIgnore, $annotationAliases);
     }
 
     /**
@@ -487,7 +595,7 @@ class BeanManager extends GenericStackable implements BeanContext
         foreach ($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
 
             // if we found a @PostConstruct annotation, invoke the method
-            if (PostConstruct::ANNOTATION === $this->getBeanUtils()->getMethodAnnotation($reflectionMethod)) {
+            if ($reflectionMethod->hasAnnotation(PostConstruct::ANNOTATION)) {
                 $reflectionMethod->invoke($instance); // method MUST has no parameters
             }
         }
@@ -519,13 +627,11 @@ class BeanManager extends GenericStackable implements BeanContext
     public static function visit(ApplicationInterface $application, ManagerConfigurationInterface $managerConfiguration = null)
     {
 
-        // create an instance of the bean utilities
-        $beanUtils = new BeanUtils();
-
         // initialize the bean locator
         $beanLocator = new BeanLocator();
 
-        // initialize the stackable for the stateful + singleton session beans
+        // initialize the stackable for the stateful + singleton session beans and the naming directory
+        $namingDirectory = new StackableStorage();
         $statefulSessionBeans = new StackableStorage();
         $singletonSessionBeans = new StackableStorage();
 
@@ -535,8 +641,8 @@ class BeanManager extends GenericStackable implements BeanContext
 
         // initialize the bean manager
         $beanManager = new BeanManager();
-        $beanManager->injectBeanUtils($beanUtils);
         $beanManager->injectResourceLocator($beanLocator);
+        $beanManager->injectNamingDirectory($namingDirectory);
         $beanManager->injectWebappPath($application->getWebappPath());
         $beanManager->injectSingletonSessionBeans($singletonSessionBeans);
         $beanManager->injectStatefulSessionBeans($statefulSessionBeans);

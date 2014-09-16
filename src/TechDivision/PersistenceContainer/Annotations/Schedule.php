@@ -17,6 +17,7 @@
 namespace TechDivision\PersistenceContainer\Annotations;
 
 use TechDivision\EnterpriseBeans\ScheduleExpression;
+use TechDivision\Lang\Reflection\ReflectionAnnotation;
 
 /**
  * Annotation implementation representing a @Schedule annotation on a bean method.
@@ -42,7 +43,7 @@ use TechDivision\EnterpriseBeans\ScheduleExpression;
  * @license    http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * @link       http://www.appserver.io
  */
-class Schedule extends AbstractSerializableAnnotation
+class Schedule extends ReflectionAnnotation
 {
 
     /**
@@ -50,7 +51,7 @@ class Schedule extends AbstractSerializableAnnotation
      *
      * @var string
      */
-    const ANNOTATION = 'schedule';
+    const ANNOTATION = 'Schedule';
 
     /**
      * The aliases to be replaced with valid CRON values.
@@ -63,13 +64,17 @@ class Schedule extends AbstractSerializableAnnotation
      * The constructor the initializes the instance with the
      * data passed with the token.
      *
-     * @param \stdClass $token A simple token object
+     * @param string $annotationName The annotation name
+     * @param array  $values         The annotation values
      */
-    public function __construct(\stdClass $token)
+    public function __construct($annotationName, array $values = array())
     {
 
+        // set the annotation name
+        $this->annotationName = $annotationName;
+
         // set the values found in the annotation
-        foreach ($token->values as $member => $value) {
+        foreach ($values as $member => $value) {
 
             // check if we've to replace the value
             if (array_key_exists($value, $this->aliases)) {
@@ -79,6 +84,17 @@ class Schedule extends AbstractSerializableAnnotation
             // set the value
             $this->values[$member] = $value;
         }
+    }
+
+    /**
+     * This method returns the class name as
+     * a string.
+     *
+     * @return string
+     */
+    public static function __getClass()
+    {
+        return __CLASS__;
     }
 
     /**

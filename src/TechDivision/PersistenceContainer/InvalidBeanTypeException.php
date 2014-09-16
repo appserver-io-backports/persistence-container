@@ -22,6 +22,8 @@
 
 namespace TechDivision\PersistenceContainer;
 
+use TechDivision\EnterpriseBeans\EnterpriseBeansException;
+
 /**
  * This is the exception that is thrown if a remote method call fails.
  *
@@ -33,6 +35,6 @@ namespace TechDivision\PersistenceContainer;
  * @link      https://github.com/techdivision/TechDivision_PersistenceContainerProtocol
  * @link      http://www.appserver.io
  */
-class InvalidBeanTypeException extends \Exception
+class InvalidBeanTypeException extends EnterpriseBeansException
 {
 }
