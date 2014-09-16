@@ -15,8 +15,8 @@
 		"doctrine/orm" : "2.4.*",
 		"herrera-io/annotations" : "1.0.*",
 		"mtdowling/cron-expression" : "1.0.*",
-		"techdivision/lang" : ">=0.1",
-        "techdivision/enterprisebeans" : "0.1.*",
+		"techdivision/naming" : "0.1.*",
+		"techdivision/enterprisebeans" : "0.1.*",
 		"techdivision/persistencecontainerprotocol" : "0.2.*"
 	},
 	"require-dev" : {

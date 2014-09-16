@@ -16,6 +16,8 @@
 
 namespace TechDivision\PersistenceContainer\Annotations;
 
+use TechDivision\Lang\Reflection\ReflectionAnnotation;
+
 /**
  * Annotation implementation representing a @PostConstruct annotation on a bean method.
  *
@@ -27,7 +29,7 @@ namespace TechDivision\PersistenceContainer\Annotations;
  * @license    http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * @link       http://www.appserver.io
  */
-class PostConstruct extends AbstractSerializableAnnotation
+class PostConstruct extends ReflectionAnnotation
 {
 
     /**
@@ -35,5 +37,16 @@ class PostConstruct extends AbstractSerializableAnnotation
      *
      * @var string
      */
-    const ANNOTATION = 'postconstruct';
+    const ANNOTATION = 'PostConstruct';
+
+    /**
+     * This method returns the class name as
+     * a string.
+     *
+     * @return string
+     */
+    public static function __getClass()
+    {
+        return __CLASS__;
+    }
 }

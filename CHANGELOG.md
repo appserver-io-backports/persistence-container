@@ -1,3 +1,13 @@
+# Version 0.8.2
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Integration of techdivision/naming package with basic naming directory functionality
+
 # Version 0.8.1
 
 ## Bugfixes

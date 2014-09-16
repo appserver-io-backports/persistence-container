@@ -61,7 +61,7 @@ class CalendarTimer extends Timer
     /**
      * The thimeout method called if we've an auto-timer.
      *
-     * \TechDivision\PersistenceContainer\TimeoutMethod
+     * \TechDivision\Lang\Reflection\MethodInterface
      */
     protected $timeoutMethod;
 
@@ -173,7 +173,7 @@ class CalendarTimer extends Timer
     /**
      * Returns the thimeout method called if we've an auto-timer.
      *
-     * @return \TechDivision\PersistenceContainer\TimeoutMethod|null The timeout method
+     * @return \TechDivision\Lang\Reflection\MethodInterface|null The timeout method
      */
     public function getTimeoutMethod()
     {

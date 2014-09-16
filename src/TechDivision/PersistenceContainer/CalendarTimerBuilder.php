@@ -21,6 +21,7 @@
 
 namespace TechDivision\PersistenceContainer;
 
+use TechDivision\Lang\Reflection\MethodInterface;
 use TechDivision\EnterpriseBeans\TimerServiceInterface;
 
 /**
@@ -117,7 +118,7 @@ class CalendarTimerBuilder extends TimerBuilder
     /**
      * The timeout method instance.
      *
-     * @var \TechDivision\PersistenceContainer\TimeoutMethod
+     * @var \TechDivision\Lang\Reflection\MethodInterface
      */
     protected $timeoutMethod;
 
@@ -267,11 +268,11 @@ class CalendarTimerBuilder extends TimerBuilder
     /**
      * Sets the timeout method instance.
      *
-     * @param \TechDivision\PersistenceContainer\TimeoutMethod $timeoutMethod The timeout method instance
+     * @param \TechDivision\Lang\Reflection\MethodInterface $timeoutMethod The timeout method instance
      *
      * @return \TechDivision\PersistenceContainer\CalendarTimerBuilder The instance itself
      */
-    public function setTimeoutMethod(TimeoutMethod $timeoutMethod)
+    public function setTimeoutMethod(MethodInterface $timeoutMethod)
     {
         $this->timeoutMethod = $timeoutMethod;
         return $this;
@@ -390,7 +391,7 @@ class CalendarTimerBuilder extends TimerBuilder
     /**
      * Returns the timeout method instance.
      *
-     * @return \TechDivision\PersistenceContainer\TimeoutMethod The timeout method instance
+     * @return \TechDivision\Lang\Reflection\MethodInterface The timeout method instance
      */
     public function getTimeoutMethod()
     {

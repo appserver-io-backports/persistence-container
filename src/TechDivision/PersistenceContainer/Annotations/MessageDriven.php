@@ -27,7 +27,7 @@ namespace TechDivision\PersistenceContainer\Annotations;
  * @license    http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * @link       http://www.appserver.io
  */
-class MessageDriven extends AbstractSerializableAnnotation
+class MessageDriven extends AbstractBeanAnnotation
 {
 
     /**
@@ -35,5 +35,16 @@ class MessageDriven extends AbstractSerializableAnnotation
      *
      * @var string
      */
-    const ANNOTATION = 'messagedriven';
+    const ANNOTATION = 'MessageDriven';
+
+    /**
+     * This method returns the class name as
+     * a string.
+     *
+     * @return string
+     */
+    public static function __getClass()
+    {
+        return __CLASS__;
+    }
 }

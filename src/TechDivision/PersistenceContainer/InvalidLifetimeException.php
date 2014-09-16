@@ -21,6 +21,8 @@
 
 namespace TechDivision\PersistenceContainer;
 
+use TechDivision\EnterpriseBeans\EnterpriseBeansException;
+
 /**
  * This is the exception that is thrown if the passed lifetime is of the wrong type.
  *
@@ -31,6 +33,6 @@ namespace TechDivision\PersistenceContainer;
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * @link      http://www.appserver.io
  */
-class InvalidLifetimeException extends \Exception
+class InvalidLifetimeException extends EnterpriseBeansException
 {
 }

@@ -23,13 +23,12 @@
 namespace TechDivision\PersistenceContainer;
 
 use TechDivision\Storage\StackableStorage;
-use TechDivision\Application\Interfaces\ApplicationInterface;
-use TechDivision\Application\Interfaces\ManagerConfigurationInterface;
-use TechDivision\PersistenceContainer\Utils\BeanUtils;
 use TechDivision\PersistenceContainerProtocol\BeanContext;
 use TechDivision\PersistenceContainer\Annotations\Stateless;
 use TechDivision\PersistenceContainer\Annotations\Singleton;
 use TechDivision\PersistenceContainer\Annotations\MessageDriven;
+use TechDivision\Application\Interfaces\ApplicationInterface;
+use TechDivision\Application\Interfaces\ManagerConfigurationInterface;
 
 /**
  * The timer service registry handles an applications timer services.
@@ -60,9 +59,6 @@ class TimerServiceRegistry extends ServiceRegistry implements TimerServiceContex
         // register the class loader again, because each thread has its own context
         $application->registerClassLoaders();
 
-        // create an instance of the bean utilities
-        $beanUtils = new BeanUtils();
-
         // build up META-INF directory var
         $metaInfDir = $application->getWebappPath() . DIRECTORY_SEPARATOR .'META-INF';
 
@@ -91,7 +87,7 @@ class TimerServiceRegistry extends ServiceRegistry implements TimerServiceContex
                 $reflectionClass = new \ReflectionClass($className);
 
                 // initialize the timed object instance with the data from the reflection class
-                $timedObject = TimedObject::fromReflectionClass($reflectionClass);
+                $timedObject = TimedObject::fromPhpReflectionClass($reflectionClass);
 
                 // check if we have a bean with a @Stateless, @Singleton or @MessageDriven annotation
                 if ($timedObject->hasAnnotation(Stateless::ANNOTATION) === false &&
@@ -106,7 +102,6 @@ class TimerServiceRegistry extends ServiceRegistry implements TimerServiceContex
 
                 // create the timed object invoker
                 $timedObjectInvoker = new TimedObjectInvoker();
-                $timedObjectInvoker->injectBeanUtils($beanUtils);
                 $timedObjectInvoker->injectApplication($application);
                 $timedObjectInvoker->injectTimedObject($timedObject);
                 $timedObjectInvoker->injectTimeoutMethods($timeoutMethods);
@@ -127,7 +122,6 @@ class TimerServiceRegistry extends ServiceRegistry implements TimerServiceContex
                 // initialize the timer service
                 $timerService = new TimerService();
                 $timerService->injectTimers($timers);
-                $timerService->injectBeanUtils($beanUtils);
                 $timerService->injectTimedObjectInvoker($timedObjectInvoker);
                 $timerService->injectTimerServiceExecutor($timerServiceExecutor);
                 $timerService->start();

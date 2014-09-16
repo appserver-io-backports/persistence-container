@@ -21,8 +21,16 @@
 
 namespace TechDivision\PersistenceContainer;
 
-use TechDivision\Lang\Reflection\ClassInterface;
-use TechDivision\PersistenceContainer\Utils\BeanUtils;
+use TechDivision\Lang\Reflection\ReflectionClass;
+use TechDivision\PersistenceContainer\Annotations\MessageDriven;
+use TechDivision\PersistenceContainer\Annotations\PostConstruct;
+use TechDivision\PersistenceContainer\Annotations\PreDestroy;
+use TechDivision\PersistenceContainer\Annotations\Schedule;
+use TechDivision\PersistenceContainer\Annotations\Singleton;
+use TechDivision\PersistenceContainer\Annotations\Startup;
+use TechDivision\PersistenceContainer\Annotations\Stateful;
+use TechDivision\PersistenceContainer\Annotations\Stateless;
+use TechDivision\PersistenceContainer\Annotations\Timeout;
 
 /**
  * A wrapper instance for a reflection class.
@@ -35,139 +43,53 @@ use TechDivision\PersistenceContainer\Utils\BeanUtils;
  * @link      https://github.com/techdivision/TechDivision_PersistenceContainer
  * @link      http://www.appserver.io
  */
-class TimedObject implements ClassInterface
+class TimedObject extends ReflectionClass
 {
 
     /**
-     * The class name to invoke the method on.
+     * Creates a new reflection class instance from the passed PHP reflection class.
      *
-     * @var string
+     * @param \ReflectionClass $reflectionClass     The PHP reflection class to load the data from
+     * @param array            $annotationsToIgnore An array with annotations names we want to ignore when loaded
+     * @param array            $annotationAliases   An array with annotation aliases used when create annotation instances
+     *
+     * @return \TechDivision\Lang\Reflection\ReflectionClass The instance
      */
-    protected $className = '';
-
-    /**
-     * The method annotations.
-     *
-     * @var array
-     */
-    protected $annotations = array();
-
-    /**
-     * Initializes the timed object with the passed data.
-     *
-     * @param string $className   The class name to invoke the method on
-     * @param array  $annotations The method annotations
-     */
-    public function __construct($className, array $annotations = array())
-    {
-        $this->className = $className;
-        $this->annotations = $annotations;
-    }
-
-    /**
-     * Returns the class name to invoke the method on.
-     *
-     * @return string The class name
-     * @see \TechDivision\EnterpriseBeans\MethodInterface::getClassName()
-     */
-    public function getClassName()
-    {
-        return $this->className;
-    }
-
-    /**
-     * Returns the method annotations.
-     *
-     * @return array The method annotations
-     */
-    public function getAnnotations()
-    {
-        return $this->annotations;
-    }
-
-    /**
-     * Serializes the timeout method and returns a string representation.
-     *
-     * @return string The serialized string representation of the instance
-     * @see \Serializable::serialize()
-     */
-    public function serialize()
-    {
-        return serialize(get_object_vars($this));
-    }
-
-    /**
-     * Restores the instance with the serialized data of the passed string.
-     *
-     * @param string $data The serialized method representation
-     *
-     * @return void
-     * @see \Serializable::unserialize()
-     */
-    public function unserialize($data)
-    {
-        foreach (unserialize($data) as $propertyName => $propertyValue) {
-            $this->$propertyName = $propertyValue;
-        }
-    }
-
-    /**
-     * Queries whether the timeout method has an annotation with the passed name or not.
-     *
-     * @param string $annotationName The annotation we want to query
-     *
-     * @return boolean TRUE if the timeout method has the annotation, else FALSE
-     */
-    public function hasAnnotation($annotationName)
-    {
-        return isset($this->annotations[$annotationName]);
-    }
-
-    /**
-     * Returns the annotation instance with the passed name.
-     *
-     * @param string $annotationName The name of the requested annotation instance
-     *
-     * @return \TechDivision\PersistenceContainer\Annotations\AnnotationInterface|null The requested annotation instance
-     * @see \TechDivision\PersistenceContainer\TimeoutMethod::hasAnnotation()
-     */
-    public function getAnnotation($annotationName)
-    {
-        if ($this->hasAnnotation($annotationName)) {
-            return $this->annotations[$annotationName];
-        }
-    }
-
-    /**
-     * Returns a reflection class representation of this instance.
-     *
-     * @return \ReflectionClass The reflection class instance
-     */
-    public function toReflectionClass()
-    {
-        return new \ReflectionClass($this->getClassName());
-    }
-
-    /**
-     * Creates a new timed object instance from the passed reflection class.
-     *
-     * @param \ReflectionClass $reflectionClass The reflection class to load the data from
-     *
-     * @return \TechDivision\PersistenceContainer\TimedObject The instance
-     */
-    public static function fromReflectionClass(\ReflectionClass $reflectionClass)
+    public static function fromPhpReflectionClass(\ReflectionClass $reflectionClass, array $annotationsToIgnore = array(), array $annotationAliases = array())
     {
 
-        // we need the bean utils
-        $beanUtils = new BeanUtils();
+        // initialize the array with the annotations we want to ignore
+        $annotationsToIgnore = array_merge(
+            $annotationsToIgnore,
+            array(
+                'author',
+                'package',
+                'license',
+                'copyright',
+                'param',
+                'return',
+                'throws',
+                'see',
+                'link'
+            )
+        );
 
-        // load the bean annotations
-        $annotations = $beanUtils->getBeanAnnotations($reflectionClass);
+        // initialize the array with the aliases for the enterprise bean annotations
+        $annotationAliases = array_merge(
+            array(
+                MessageDriven::ANNOTATION => MessageDriven::__getClass(),
+                PostConstruct::ANNOTATION => PostConstruct::__getClass(),
+                PreDestroy::ANNOTATION    => PreDestroy::__getClass(),
+                Schedule::ANNOTATION      => Schedule::__getClass(),
+                Singleton::ANNOTATION     => Singleton::__getClass(),
+                Startup::ANNOTATION       => Startup::__getClass(),
+                Stateful::ANNOTATION      => Stateful::__getClass(),
+                Stateless::ANNOTATION     => Stateless::__getClass(),
+                Timeout::ANNOTATION       => Timeout::__getClass()
+            )
+        );
 
-        // load class name from the reflection class
-        $className = $reflectionClass->getName();
-
-        // initialize and return the timed object instance
-        return new TimedObject($className, $annotations);
+        // create a new timed object instance
+        return new TimedObject($reflectionClass->getName(), $annotationsToIgnore, $annotationAliases);
     }
 }
