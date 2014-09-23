@@ -117,7 +117,9 @@ class TimerServiceExecutor extends \Thread
         $this->scheduledTimerTasks[] = $timerTaskWrapper;
 
         // force handling the timer tasks now
-        $this->notify();
+        $this->synchronized(function ($self) {
+            $self->notify();
+        }, $this);
     }
 
     /**
@@ -140,7 +142,10 @@ class TimerServiceExecutor extends \Thread
 
         while (true) { // handle the timer events
 
-            $this->wait(1000000); // wait 1 second or till we've been notified
+            // wait 1 second or till we've been notified
+            $this->synchronized(function ($self) {
+                $self->wait(1000000);
+            }, $this);
 
             // iterate over the scheduled timer tasks
             foreach ($scheduledTimerTasks as $key => $timerTaskWrapper) {
