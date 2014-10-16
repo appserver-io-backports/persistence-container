@@ -78,8 +78,9 @@ class StandardGarbageCollector extends \Thread
 
         while (true) {
 
-            // wait one second
-            $this->wait(1000000);
+            $this->synchronized(function () { // wait one second
+                $this->wait(1000000);
+            });
 
             // we need the bean manager that handles all the beans
             $beanManager = $application->getManager(BeanContext::IDENTIFIER);
