@@ -1,3 +1,13 @@
+# Version 0.8.5
+
+## Bugfixes
+
+* Inject all Stackable instances instead of initialize them in BeanManager::__construct, ServiceRegistry::__construct, TimerServiceRegistry::__construct => pthreads 2.x compatibility
+
+## Features
+
+* None
+
 # Version 0.8.4
 
 ## Bugfixes
