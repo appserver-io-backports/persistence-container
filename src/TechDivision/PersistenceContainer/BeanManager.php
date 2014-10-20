@@ -62,9 +62,9 @@ class BeanManager extends GenericStackable implements BeanContext
 {
 
     /**
-     * Initializes the bean manager.
+     * Inject the data storage.
      *
-     * @param \TechDivision\Storage\StackableStorage $data
+     * @param \TechDivision\Storage\StackableStorage $data The data storage to use
      *
      * @return void
      */
