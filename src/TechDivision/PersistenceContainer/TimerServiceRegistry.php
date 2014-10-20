@@ -200,11 +200,13 @@ class TimerServiceRegistry extends ServiceRegistry implements TimerServiceContex
         // initialize the service locator
         $serviceLocator = new ServiceLocator();
 
-        // initialize the stackable for the services
+        // initialize the stackable for the data and the services
+        $data = new StackableStorage();
         $services = new StackableStorage();
 
         // initialize the service registry
         $serviceRegistry = new TimerServiceRegistry();
+        $serviceRegistry->injectData($data);
         $serviceRegistry->injectServices($services);
         $serviceRegistry->injectServiceLocator($serviceLocator);
         $serviceRegistry->injectWebappPath($application->getWebappPath());

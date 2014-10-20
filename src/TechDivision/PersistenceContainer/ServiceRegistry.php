@@ -42,10 +42,14 @@ abstract class ServiceRegistry extends GenericStackable implements ServiceContex
 
     /**
      * Initializes the bean manager.
+     *
+     * @param \TechDivision\Storage\StackableStorage $data
+     *
+     * @return void
      */
-    public function __construct()
+    public function injectData(StorageInterface $data)
     {
-        $this->data = new StackableStorage();
+        $this->data = $data;
     }
 
     /**

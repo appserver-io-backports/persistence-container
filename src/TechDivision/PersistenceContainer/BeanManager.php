@@ -63,10 +63,14 @@ class BeanManager extends GenericStackable implements BeanContext
 
     /**
      * Initializes the bean manager.
+     *
+     * @param \TechDivision\Storage\StackableStorage $data
+     *
+     * @return void
      */
-    public function __construct()
+    public function injectData(StorageInterface $data)
     {
-        $this->data = new StackableStorage();
+        $this->data = $data;
     }
 
     /**
@@ -630,7 +634,8 @@ class BeanManager extends GenericStackable implements BeanContext
         // initialize the bean locator
         $beanLocator = new BeanLocator();
 
-        // initialize the stackable for the stateful + singleton session beans and the naming directory
+        // initialize the stackable for the data, the stateful + singleton session beans and the naming directory
+        $data = new StackableStorage();
         $namingDirectory = new StackableStorage();
         $statefulSessionBeans = new StackableStorage();
         $singletonSessionBeans = new StackableStorage();
@@ -641,6 +646,7 @@ class BeanManager extends GenericStackable implements BeanContext
 
         // initialize the bean manager
         $beanManager = new BeanManager();
+        $beanManager->injectData($data);
         $beanManager->injectResourceLocator($beanLocator);
         $beanManager->injectNamingDirectory($namingDirectory);
         $beanManager->injectWebappPath($application->getWebappPath());
