@@ -31,7 +31,6 @@ use TechDivision\Storage\StackableStorage;
 use TechDivision\PersistenceContainerProtocol\BeanContext;
 use TechDivision\PersistenceContainerProtocol\RemoteMethod;
 use TechDivision\Application\Interfaces\ApplicationInterface;
-use TechDivision\Application\Interfaces\ManagerConfigurationInterface;
 use TechDivision\PersistenceContainer\Annotations\MessageDriven;
 use TechDivision\PersistenceContainer\Annotations\PreDestroy;
 use TechDivision\PersistenceContainer\Annotations\PostConstruct;
@@ -617,44 +616,5 @@ class BeanManager extends GenericStackable implements BeanContext
     public function getIdentifier()
     {
         return BeanContext::IDENTIFIER;
-    }
-
-    /**
-     * Factory method that adds a initialized manager instance to the passed application.
-     *
-     * @param \TechDivision\Application\Interfaces\ApplicationInterface               $application          The application instance
-     * @param \TechDivision\Application\Interfaces\ManagerConfigurationInterface|null $managerConfiguration The manager configuration
-     *
-     * @return void
-     * @see \TechDivision\Application\Interfaces\ManagerInterface::get()
-     */
-    public static function visit(ApplicationInterface $application, ManagerConfigurationInterface $managerConfiguration = null)
-    {
-
-        // initialize the bean locator
-        $beanLocator = new BeanLocator();
-
-        // initialize the stackable for the data, the stateful + singleton session beans and the naming directory
-        $data = new StackableStorage();
-        $namingDirectory = new StackableStorage();
-        $statefulSessionBeans = new StackableStorage();
-        $singletonSessionBeans = new StackableStorage();
-
-        // initialize the default settings for the stateful session beans
-        $statefulSessionBeanSettings = new DefaultStatefulSessionBeanSettings();
-        $statefulSessionBeanSettings->mergeWithParams($managerConfiguration->getParamsAsArray());
-
-        // initialize the bean manager
-        $beanManager = new BeanManager();
-        $beanManager->injectData($data);
-        $beanManager->injectResourceLocator($beanLocator);
-        $beanManager->injectNamingDirectory($namingDirectory);
-        $beanManager->injectWebappPath($application->getWebappPath());
-        $beanManager->injectSingletonSessionBeans($singletonSessionBeans);
-        $beanManager->injectStatefulSessionBeans($statefulSessionBeans);
-        $beanManager->injectStatefulSessionBeanSettings($statefulSessionBeanSettings);
-
-        // add the initialized manager instance to the application
-        $application->addManager($beanManager);
     }
 }
