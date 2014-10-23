@@ -28,7 +28,6 @@ use TechDivision\PersistenceContainer\Annotations\Stateless;
 use TechDivision\PersistenceContainer\Annotations\Singleton;
 use TechDivision\PersistenceContainer\Annotations\MessageDriven;
 use TechDivision\Application\Interfaces\ApplicationInterface;
-use TechDivision\Application\Interfaces\ManagerConfigurationInterface;
 
 /**
  * The timer service registry handles an applications timer services.
@@ -183,35 +182,5 @@ class TimerServiceRegistry extends ServiceRegistry implements TimerServiceContex
     public function getIdentifier()
     {
         return TimerServiceContext::IDENTIFIER;
-    }
-
-    /**
-     * Factory method that adds a initialized manager instance to the passed application.
-     *
-     * @param \TechDivision\Application\Interfaces\ApplicationInterface               $application          The application instance
-     * @param \TechDivision\Application\Interfaces\ManagerConfigurationInterface|null $managerConfiguration The manager configuration
-     *
-     * @return void
-     * @see \TechDivision\Application\Interfaces\ManagerInterface::get()
-     */
-    public static function visit(ApplicationInterface $application, ManagerConfigurationInterface $managerConfiguration = null)
-    {
-
-        // initialize the service locator
-        $serviceLocator = new ServiceLocator();
-
-        // initialize the stackable for the data and the services
-        $data = new StackableStorage();
-        $services = new StackableStorage();
-
-        // initialize the service registry
-        $serviceRegistry = new TimerServiceRegistry();
-        $serviceRegistry->injectData($data);
-        $serviceRegistry->injectServices($services);
-        $serviceRegistry->injectServiceLocator($serviceLocator);
-        $serviceRegistry->injectWebappPath($application->getWebappPath());
-
-        // add the initialized manager instance to the application
-        $application->addManager($serviceRegistry);
     }
 }

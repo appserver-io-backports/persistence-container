@@ -22,7 +22,7 @@
 	"require-dev" : {
 		"phpunit/phpunit" : "3.7.*",
 		"appserver-io/build" : "0.1.*",
-		"techdivision/servletengine" : ">=0.7"
+		"techdivision/servletengine" : "0.8.*"
 	},
 	"autoload" : {
 		"psr-0" : {
