@@ -104,7 +104,7 @@ class Schedule extends ReflectionAnnotation
      */
     public function getDayOfMonth()
     {
-        return $this->values['dayOfMonth'];
+        return $this->values[AnnotationKeys::DAY_OF_MONTH];
     }
 
     /**
@@ -114,7 +114,7 @@ class Schedule extends ReflectionAnnotation
      */
     public function getDayOfWeek()
     {
-        return $this->values['dayOfWeek'];
+        return $this->values[AnnotationKeys::DAY_OF_WEEK];
     }
 
     /**
@@ -124,7 +124,7 @@ class Schedule extends ReflectionAnnotation
      */
     public function getEnd()
     {
-        return $this->values['end'];
+        return $this->values[AnnotationKeys::END];
     }
 
     /**
@@ -134,7 +134,7 @@ class Schedule extends ReflectionAnnotation
      */
     public function getHour()
     {
-        return $this->values['hour'];
+        return $this->values[AnnotationKeys::HOUR];
     }
 
     /**
@@ -144,7 +144,7 @@ class Schedule extends ReflectionAnnotation
      */
     public function getMinute()
     {
-        return $this->values['minute'];
+        return $this->values[AnnotationKeys::MINUTE];
     }
 
     /**
@@ -154,7 +154,7 @@ class Schedule extends ReflectionAnnotation
      */
     public function getMonth()
     {
-        return $this->values['month'];
+        return $this->values[AnnotationKeys::MONTH];
     }
 
     /**
@@ -164,7 +164,7 @@ class Schedule extends ReflectionAnnotation
      */
     public function getSecond()
     {
-        return $this->values['second'];
+        return $this->values[AnnotationKeys::SECOND];
     }
 
     /**
@@ -174,7 +174,7 @@ class Schedule extends ReflectionAnnotation
      */
     public function getStart()
     {
-        return $this->values['start'];
+        return $this->values[AnnotationKeys::START];
     }
 
     /**
@@ -184,7 +184,7 @@ class Schedule extends ReflectionAnnotation
      */
     public function getTimezone()
     {
-        return $this->values['timezone'];
+        return $this->values[AnnotationKeys::TIMEZONE];
     }
 
     /**
@@ -194,7 +194,7 @@ class Schedule extends ReflectionAnnotation
      */
     public function getYear()
     {
-        return $this->values['year'];
+        return $this->values[AnnotationKeys::YEAR];
     }
 
     /**
