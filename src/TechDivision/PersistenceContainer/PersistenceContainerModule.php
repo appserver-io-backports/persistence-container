@@ -50,11 +50,7 @@ class PersistenceContainerModule extends ServletEngine
         // call parent constructor
         parent::__construct();
 
-        /**
-         * The initialized garbage collector instances.
-         *
-         * @var \TechDivision\Storage\GenericStackable
-         */
+        // initialize the member variables
         $this->garbageCollectors = new GenericStackable();
     }
 

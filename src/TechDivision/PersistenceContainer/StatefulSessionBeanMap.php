@@ -21,6 +21,8 @@
 
 namespace TechDivision\PersistenceContainer;
 
+use TechDivision\Collections\Map;
+use TechDivision\Storage\GenericStackable;
 use TechDivision\Lang\NullPointerException;
 use TechDivision\Collections\AbstractMap;
 use TechDivision\Collections\InvalidKeyException;
@@ -36,15 +38,31 @@ use TechDivision\Collections\IndexOutOfBoundsException;
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * @link      http://www.appserver.io
  */
-class StatefulSessionBeanMap extends AbstractMap
+class StatefulSessionBeanMap extends GenericStackable implements Map
 {
 
     /**
      * Array containing the lifetime of the items.
      *
-     * @var array
+     * @var \TechDivision\Storage\GenericStackable
      */
-    protected $lifetime = array();
+    protected $lifetime;
+
+    /**
+     * The items the map contains.
+     *
+     * @var \TechDivision\Storage\GenericStackable
+     */
+    protected $items;
+
+    /**
+     * Initializes the map.
+     */
+    public function __construct()
+    {
+        $this->items = new GenericStackable();
+        $this->lifetime = new GenericStackable();
+    }
 
     /**
      * This method adds the passed object with the passed key
@@ -260,5 +278,98 @@ class StatefulSessionBeanMap extends AbstractMap
     public function getLifetime()
     {
         return $this->lifetime;
+    }
+
+    /**
+     * This method returns the internal array
+     * with the keys and the related values.
+     *
+     * @return array Holds the array with keys and values
+     * @see \TechDivision\Collections\Map::toIndexedArray()
+     */
+    public function toIndexedArray()
+    {
+        $array = array();
+        foreach ($this->items as $key => $item) {
+            $array[$key] = $item;
+        }
+        return $array;
+    }
+
+    /**
+     * This method returns the number of entries of the Collection.
+     *
+     * @return integer The number of entries
+     */
+    public function size()
+    {
+        return sizeof($this->items);
+    }
+
+    /**
+     * This method initializes the Collection and removes
+     * all exsiting entries.
+     *
+     * @return void
+     */
+    public function clear()
+    {
+        $this->items = new GenericStackable();
+    }
+
+    /**
+     * This returns true if the Collection has no
+     * entries, otherwise false.
+     *
+     * @return boolean
+     */
+    public function isEmpty()
+    {
+        return $this->size() > 0;
+    }
+
+    /**
+     * This method returns an array with the
+     * items of the Dictionary.
+     *
+     * The keys are lost in the array.
+     *
+     * @return array Holds an array with the items of the Dictionary
+     */
+    public function toArray()
+    {
+        $array = array();
+        foreach ($this->items as $item) {
+            $array[] = $item;
+        }
+        return $array;
+    }
+
+    /**
+     * This method appends all elements of the
+     * passed array to the Collection.
+     *
+     * @param array $array Holds the array with the values to add
+     *
+     * @return \TechDivision\Collections\Collection The instance
+     */
+    public function addAll($array)
+    {
+        $this->items->merge($array);
+    }
+
+    /**
+     * This method checks if the element with the passed
+     * key exists in the Collection.
+     *
+     * @param mixed $key Holds the key to check the elements of the Collection for
+     *
+     * @return boolean Returns true if an element with the passed key exists in the Collection
+     * @throws \TechDivision\Collections\InvalidKeyException Is thrown if the passed key is invalid
+     * @throws \TechDivision\Lang\NullPointerException Is thrown if the passed key is NULL
+     */
+    public function exists($key)
+    {
+        return isset($this->items[$key]);
     }
 }

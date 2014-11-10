@@ -24,7 +24,8 @@
 namespace TechDivision\PersistenceContainer;
 
 use TechDivision\Storage\StackableStorage;
-use TechDivision\ApplicationServer\AbstractManagerFactory;
+use TechDivision\Application\Interfaces\ApplicationInterface;
+use TechDivision\Application\Interfaces\ManagerConfigurationInterface;
 
 /**
  * The bean manager handles the message and session beans registered for the application.
@@ -38,60 +39,53 @@ use TechDivision\ApplicationServer\AbstractManagerFactory;
  * @link      https://github.com/techdivision/TechDivision_PersistenceContainer
  * @link      http://www.appserver.io
  */
-class BeanManagerFactory extends AbstractManagerFactory
+class BeanManagerFactory
 {
 
     /**
      * The main method that creates new instances in a separate context.
      *
+     * @param \TechDivision\Application\Interfaces\ApplicationInterface          $application          The application instance to register the class loader with
+     * @param \TechDivision\Application\Interfaces\ManagerConfigurationInterface $managerConfiguration The manager configuration
+     *
      * @return void
      */
-    public function run()
+    public static function visit(ApplicationInterface $application, ManagerConfigurationInterface $managerConfiguration)
     {
 
-        while (true) { // we never stop
+        // load the registered loggers
+        $loggers = $application->getInitialContext()->getLoggers();
 
-            $this->synchronized(function ($self) {
+        // initialize the bean locator
+        $beanLocator = new BeanLocator();
 
-                // make instances local available
-                $instances = $self->instances;
-                $application = $self->application;
-                $initialContext = $self->initialContext;
-                $managerConfiguration = $self->managerConfiguration;
+        // initialize the stackable for the data, the stateful + singleton session beans and the naming directory
+        $data = new StackableStorage();
+        $namingDirectory = new StackableStorage();
+        $statefulSessionBeans = new StackableStorage();
+        $singletonSessionBeans = new StackableStorage();
 
-                // register the default class loader
-                $initialContext->getClassLoader()->register(true, true);
+        // initialize the default settings for the stateful session beans
+        $statefulSessionBeanSettings = new DefaultStatefulSessionBeanSettings();
+        $statefulSessionBeanSettings->mergeWithParams($managerConfiguration->getParamsAsArray());
 
-                // initialize the bean locator
-                $beanLocator = new BeanLocator();
+        // we need a factory instance for the stateful session bean instances
+        $statefulSessionBeanMapFactory = new StatefulSessionBeanMapFactory($statefulSessionBeans);
+        $statefulSessionBeanMapFactory->injectLoggers($loggers);
+        $statefulSessionBeanMapFactory->start();
 
-                // initialize the stackable for the data, the stateful + singleton session beans and the naming directory
-                $data = new StackableStorage();
-                $namingDirectory = new StackableStorage();
-                $statefulSessionBeans = new StackableStorage();
-                $singletonSessionBeans = new StackableStorage();
+        // initialize the bean manager
+        $beanManager = new BeanManager();
+        $beanManager->injectData($data);
+        $beanManager->injectResourceLocator($beanLocator);
+        $beanManager->injectNamingDirectory($namingDirectory);
+        $beanManager->injectWebappPath($application->getWebappPath());
+        $beanManager->injectSingletonSessionBeans($singletonSessionBeans);
+        $beanManager->injectStatefulSessionBeans($statefulSessionBeans);
+        $beanManager->injectStatefulSessionBeanSettings($statefulSessionBeanSettings);
+        $beanManager->injectStatefulSessionBeanMapFactory($statefulSessionBeanMapFactory);
 
-                // initialize the default settings for the stateful session beans
-                $statefulSessionBeanSettings = new DefaultStatefulSessionBeanSettings();
-                $statefulSessionBeanSettings->mergeWithParams($managerConfiguration->getParamsAsArray());
-
-                // initialize the bean manager
-                $beanManager = new BeanManager();
-                $beanManager->injectData($data);
-                $beanManager->injectResourceLocator($beanLocator);
-                $beanManager->injectNamingDirectory($namingDirectory);
-                $beanManager->injectWebappPath($application->getWebappPath());
-                $beanManager->injectSingletonSessionBeans($singletonSessionBeans);
-                $beanManager->injectStatefulSessionBeans($statefulSessionBeans);
-                $beanManager->injectStatefulSessionBeanSettings($statefulSessionBeanSettings);
-
-                // attach the instance
-                $instances[] = $beanManager;
-
-                // wait for the next instance to be created
-                $self->wait();
-
-            }, $this);
-        }
+        // attach the instance
+        $application->addManager($beanManager);
     }
 }

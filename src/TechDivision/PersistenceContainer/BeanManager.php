@@ -148,6 +148,18 @@ class BeanManager extends GenericStackable implements BeanContext
     }
 
     /**
+     * Injects the stateful session bean map factory.
+     *
+     * @param \TechDivision\PersistenceContainer\StatefulSessionBeanMapFactory $statefulSessionBeanMapFactory The factory instance
+     *
+     * @return void
+     */
+    public function injectStatefulSessionBeanMapFactory(StatefulSessionBeanMapFactory $statefulSessionBeanMapFactory)
+    {
+        $this->statefulSessionBeanMapFactory = $statefulSessionBeanMapFactory;
+    }
+
+    /**
      * Has been automatically invoked by the container after the application
      * instance has been created.
      *
@@ -350,6 +362,16 @@ class BeanManager extends GenericStackable implements BeanContext
     }
 
     /**
+     * Returns the stateful session bean map factory.
+     *
+     * @return \TechDivision\PersistenceContainer\StatefulSessionBeanMapFactory The factory instance
+     */
+    public function getStatefulSessionBeanMapFactory()
+    {
+        return $this->statefulSessionBeanMapFactory;
+    }
+
+    /**
      * Tries to locate the queue that handles the request and returns the instance
      * if one can be found.
      *
@@ -411,8 +433,10 @@ class BeanManager extends GenericStackable implements BeanContext
             // remove the instance from the sessions
             $sessions->remove($className, array($this, 'destroyBeanInstance'));
 
-            // re-attach the map with the stateful session beans to the container
-            $this->getStatefulSessionBeans()->set($sessionId, $sessions);
+            // check if we've to remove the SFB map
+            if ($sessions->size() === 0) {
+                $this->getStatefulSessionBeans()->remove($sessionId);
+            }
         }
     }
 
@@ -483,20 +507,20 @@ class BeanManager extends GenericStackable implements BeanContext
                 throw new \Exception('Can\'t find a session-ID to attach stateful session bean');
             }
 
-            // initialize the map for the stateful session beans
-            if ($this->getStatefulSessionBeans()->has($sessionId) === false) {
-                $this->getStatefulSessionBeans()->set($sessionId, new StatefulSessionBeanMap());
-            }
-
             // load the lifetime from the session bean settings
             $lifetime = $this->getStatefulSessionBeanSettings()->getLifetime();
 
-            // add the stateful session bean to the map
-            $sessions = $this->getStatefulSessionBeans()->get($sessionId);
-            $sessions->add($reflectionObject->getName(), $instance, $lifetime);
+            // initialize the map for the stateful session beans
+            if ($this->getStatefulSessionBeans()->has($sessionId) === false) { // create a new session bean map instance
+                $this->getStatefulSessionBeanMapFactory()->newInstance($sessionId);
 
-            // re-attach the map with the stateful session beans to the container
-            $this->getStatefulSessionBeans()->set($sessionId, $sessions);
+            }
+
+            // load the session bean map instance
+            $sessions = $this->getStatefulSessionBeans()->get($sessionId);
+
+            // add the stateful session bean to the map
+            $sessions->add($reflectionObject->getName(), $instance, $lifetime);
 
             return;
         }

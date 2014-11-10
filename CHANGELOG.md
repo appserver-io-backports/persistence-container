@@ -1,3 +1,16 @@
+# Version 0.9.1
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Add map + factory for SFBs
+* Add dependency to new appserver-io/logger library
+* Integration of monitoring/profiling functionality
+* Revert integration to initialize manager instances with thread based factories
+
 # Version 0.9.0
 
 ## Bugfixes
