@@ -22,6 +22,7 @@
 
 namespace TechDivision\PersistenceContainer;
 
+use AppserverIo\Logger\LoggerUtils;
 use TechDivision\Storage\StackableStorage;
 use TechDivision\PersistenceContainerProtocol\BeanContext;
 use TechDivision\Application\Interfaces\ApplicationInterface;
@@ -41,11 +42,11 @@ class StandardGarbageCollector extends \Thread
 {
 
     /**
-     * The application instance the worker is working for.
+     * The time we wait after each loop.
      *
-     * @var \TechDivision\ApplicationServer\Interfaces\ApplicationInterface
+     * @var integer
      */
-    protected $application;
+    const TIME_TO_LIVE = 1;
 
     /**
      * Initializes the queue worker with the application and the storage it should work on.
@@ -76,17 +77,25 @@ class StandardGarbageCollector extends \Thread
         // register the class loader again, because each thread has its own context
         $application->registerClassLoaders();
 
+        // try to load the profile logger
+        if ($profileLogger = $application->getInitialContext()->getLogger(LoggerUtils::PROFILE)) {
+            $profileLogger->appendThreadContext('persistence-container-garbage-collector');
+        }
+
         while (true) {
 
             $this->synchronized(function () { // wait one second
-                $this->wait(1000000);
+                $this->wait(1000000 * StandardGarbageCollector::TIME_TO_LIVE);
             });
 
             // we need the bean manager that handles all the beans
             $beanManager = $application->getManager(BeanContext::IDENTIFIER);
 
+            // load the map with the stateful session beans
+            $statefulSessionBeans = $beanManager->getStatefulSessionBeans();
+
             // iterate over the applications sessions with stateful session beans
-            foreach ($beanManager->getStatefulSessionBeans() as $sessionId => $sessions) {
+            foreach ($statefulSessionBeans as $sessionId => $sessions) {
 
                 if ($sessions instanceof StatefulSessionBeanMap) { // if we've a map with stateful session beans
 
@@ -101,6 +110,12 @@ class StandardGarbageCollector extends \Thread
                         }
                     }
                 }
+            }
+
+            if ($profileLogger) { // profile the stateful session bean map size
+                $profileLogger->debug(
+                    sprintf('Processed standard garbage collector, handling %d SFBs', sizeof($statefulSessionBeans))
+                );
             }
         }
     }

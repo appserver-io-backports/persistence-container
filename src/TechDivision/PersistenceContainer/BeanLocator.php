@@ -118,13 +118,13 @@ class BeanLocator implements ResourceLocator
                 $instance = $beanManager->newInstance($realClassName, $args);
 
                 // add the singleton session bean to the container
-                $beanManager->getSingletonSessionBeans()->set($realClassName, $instance) ;
+                $beanManager->getSingletonSessionBeans()->set($realClassName, $instance);
 
                 // return the instance
                 return $instance;
             }
 
-            // @Stateless or // @MessageDriven
+            // @Stateless or @MessageDriven
             if ($reflectionClass->hasAnnotation(Stateless::ANNOTATION) ||
                 $reflectionClass->hasAnnotation(MessageDriven::ANNOTATION)) {
 

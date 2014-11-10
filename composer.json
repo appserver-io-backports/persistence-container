@@ -16,13 +16,13 @@
 		"herrera-io/annotations" : "1.0.*",
 		"mtdowling/cron-expression" : "1.0.*",
 		"techdivision/naming" : "0.1.*",
+        "techdivision/servletengine" : "0.8.*",
 		"techdivision/enterprisebeans" : "0.1.*",
 		"techdivision/persistencecontainerprotocol" : "0.2.*"
 	},
 	"require-dev" : {
 		"phpunit/phpunit" : "3.7.*",
-		"appserver-io/build" : "0.1.*",
-		"techdivision/servletengine" : "0.8.*"
+		"appserver-io/build" : "0.1.*"
 	},
 	"autoload" : {
 		"psr-0" : {

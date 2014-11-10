@@ -23,7 +23,8 @@
 namespace TechDivision\PersistenceContainer;
 
 use TechDivision\Storage\StackableStorage;
-use TechDivision\ApplicationServer\AbstractManagerFactory;
+use TechDivision\Application\Interfaces\ApplicationInterface;
+use TechDivision\Application\Interfaces\ManagerConfigurationInterface;
 
 /**
  * A factory for the timer service registry instances.
@@ -36,50 +37,35 @@ use TechDivision\ApplicationServer\AbstractManagerFactory;
  * @link      https://github.com/techdivision/TechDivision_PersistenceContainer
  * @link      http://www.appserver.io
  */
-class TimerServiceRegistryFactory extends AbstractManagerFactory
+class TimerServiceRegistryFactory
 {
 
     /**
      * The main method that creates new instances in a separate context.
      *
+     * @param \TechDivision\Application\Interfaces\ApplicationInterface          $application          The application instance to register the class loader with
+     * @param \TechDivision\Application\Interfaces\ManagerConfigurationInterface $managerConfiguration The manager configuration
+     *
      * @return void
      */
-    public function run()
+    public static function visit(ApplicationInterface $application, ManagerConfigurationInterface $managerConfiguration)
     {
 
-        while (true) { // we never stop
+        // initialize the service locator
+        $serviceLocator = new ServiceLocator();
 
-            $this->synchronized(function ($self) {
+        // initialize the stackable for the data and the services
+        $data = new StackableStorage();
+        $services = new StackableStorage();
 
-                // make instances local available
-                $instances = $self->instances;
-                $application = $self->application;
-                $initialContext = $self->initialContext;
+        // initialize the service registry
+        $serviceRegistry = new TimerServiceRegistry();
+        $serviceRegistry->injectData($data);
+        $serviceRegistry->injectServices($services);
+        $serviceRegistry->injectServiceLocator($serviceLocator);
+        $serviceRegistry->injectWebappPath($application->getWebappPath());
 
-                // register the default class loader
-                $initialContext->getClassLoader()->register(true, true);
-
-                // initialize the service locator
-                $serviceLocator = new ServiceLocator();
-
-                // initialize the stackable for the data and the services
-                $data = new StackableStorage();
-                $services = new StackableStorage();
-
-                // initialize the service registry
-                $serviceRegistry = new TimerServiceRegistry();
-                $serviceRegistry->injectData($data);
-                $serviceRegistry->injectServices($services);
-                $serviceRegistry->injectServiceLocator($serviceLocator);
-                $serviceRegistry->injectWebappPath($application->getWebappPath());
-
-                // attach the instance
-                $instances[] = $serviceRegistry;
-
-                // wait for the next instance to be created
-                $self->wait();
-
-            }, $this);
-        }
+        // attach the instance
+        $application->addManager($serviceRegistry);
     }
 }

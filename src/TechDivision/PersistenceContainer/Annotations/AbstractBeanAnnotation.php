@@ -39,7 +39,7 @@ abstract class AbstractBeanAnnotation extends ReflectionAnnotation
      */
     public function getName()
     {
-        return $this->values['name'];
+        return $this->values[AnnotationKeys::NAME];
     }
 
     /**
@@ -49,7 +49,7 @@ abstract class AbstractBeanAnnotation extends ReflectionAnnotation
      */
     public function getMappedName()
     {
-        return $this->values['mappedName'];
+        return $this->values[AnnotationKeys::MAPPED_NAME];
     }
 
     /**
@@ -59,6 +59,6 @@ abstract class AbstractBeanAnnotation extends ReflectionAnnotation
      */
     public function getDescription()
     {
-        return $this->values['description'];
+        return $this->values[AnnotationKeys::DESCRIPTION];
     }
 }

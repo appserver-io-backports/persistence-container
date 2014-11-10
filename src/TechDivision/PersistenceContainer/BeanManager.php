@@ -23,6 +23,7 @@
 
 namespace TechDivision\PersistenceContainer;
 
+use TechDivision\Naming\InitialContext;
 use TechDivision\Collections\ArrayList;
 use TechDivision\Collections\HashMap;
 use TechDivision\Storage\StorageInterface;
@@ -40,6 +41,8 @@ use TechDivision\PersistenceContainer\Annotations\Stateful;
 use TechDivision\PersistenceContainer\Annotations\Stateless;
 use TechDivision\PersistenceContainer\Annotations\Schedule;
 use TechDivision\PersistenceContainer\Annotations\Timeout;
+use TechDivision\PersistenceContainer\Annotations\EnterpriseBean;
+use TechDivision\PersistenceContainer\Annotations\Resource;
 use TechDivision\Lang\Reflection\ClassInterface;
 use TechDivision\Lang\Reflection\ReflectionClass;
 use TechDivision\Lang\Reflection\ReflectionObject;
@@ -142,6 +145,18 @@ class BeanManager extends GenericStackable implements BeanContext
     public function injectStatefulSessionBeanSettings(StatefulSessionBeanSettings $statefulSessionBeanSettings)
     {
         $this->statefulSessionBeanSettings = $statefulSessionBeanSettings;
+    }
+
+    /**
+     * Injects the stateful session bean map factory.
+     *
+     * @param \TechDivision\PersistenceContainer\StatefulSessionBeanMapFactory $statefulSessionBeanMapFactory The factory instance
+     *
+     * @return void
+     */
+    public function injectStatefulSessionBeanMapFactory(StatefulSessionBeanMapFactory $statefulSessionBeanMapFactory)
+    {
+        $this->statefulSessionBeanMapFactory = $statefulSessionBeanMapFactory;
     }
 
     /**
@@ -347,6 +362,16 @@ class BeanManager extends GenericStackable implements BeanContext
     }
 
     /**
+     * Returns the stateful session bean map factory.
+     *
+     * @return \TechDivision\PersistenceContainer\StatefulSessionBeanMapFactory The factory instance
+     */
+    public function getStatefulSessionBeanMapFactory()
+    {
+        return $this->statefulSessionBeanMapFactory;
+    }
+
+    /**
      * Tries to locate the queue that handles the request and returns the instance
      * if one can be found.
      *
@@ -408,8 +433,10 @@ class BeanManager extends GenericStackable implements BeanContext
             // remove the instance from the sessions
             $sessions->remove($className, array($this, 'destroyBeanInstance'));
 
-            // re-attach the map with the stateful session beans to the container
-            $this->getStatefulSessionBeans()->set($sessionId, $sessions);
+            // check if we've to remove the SFB map
+            if ($sessions->size() === 0) {
+                $this->getStatefulSessionBeans()->remove($sessionId);
+            }
         }
     }
 
@@ -480,20 +507,20 @@ class BeanManager extends GenericStackable implements BeanContext
                 throw new \Exception('Can\'t find a session-ID to attach stateful session bean');
             }
 
-            // initialize the map for the stateful session beans
-            if ($this->getStatefulSessionBeans()->has($sessionId) === false) {
-                $this->getStatefulSessionBeans()->set($sessionId, new StatefulSessionBeanMap());
-            }
-
             // load the lifetime from the session bean settings
             $lifetime = $this->getStatefulSessionBeanSettings()->getLifetime();
 
-            // add the stateful session bean to the map
-            $sessions = $this->getStatefulSessionBeans()->get($sessionId);
-            $sessions->add($reflectionObject->getName(), $instance, $lifetime);
+            // initialize the map for the stateful session beans
+            if ($this->getStatefulSessionBeans()->has($sessionId) === false) { // create a new session bean map instance
+                $this->getStatefulSessionBeanMapFactory()->newInstance($sessionId);
 
-            // re-attach the map with the stateful session beans to the container
-            $this->getStatefulSessionBeans()->set($sessionId, $sessions);
+            }
+
+            // load the session bean map instance
+            $sessions = $this->getStatefulSessionBeans()->get($sessionId);
+
+            // add the stateful session bean to the map
+            $sessions->add($reflectionObject->getName(), $instance, $lifetime);
 
             return;
         }
@@ -564,15 +591,17 @@ class BeanManager extends GenericStackable implements BeanContext
 
         // initialize the array with the aliases for the enterprise bean annotations
         $annotationAliases = array(
-            MessageDriven::ANNOTATION => MessageDriven::__getClass(),
-            PostConstruct::ANNOTATION => PostConstruct::__getClass(),
-            PreDestroy::ANNOTATION    => PreDestroy::__getClass(),
-            Schedule::ANNOTATION      => Schedule::__getClass(),
-            Singleton::ANNOTATION     => Singleton::__getClass(),
-            Startup::ANNOTATION       => Startup::__getClass(),
-            Stateful::ANNOTATION      => Stateful::__getClass(),
-            Stateless::ANNOTATION     => Stateless::__getClass(),
-            Timeout::ANNOTATION       => Timeout::__getClass()
+            EnterpriseBean::ANNOTATION => EnterpriseBean::__getClass(),
+            MessageDriven::ANNOTATION  => MessageDriven::__getClass(),
+            PostConstruct::ANNOTATION  => PostConstruct::__getClass(),
+            PreDestroy::ANNOTATION     => PreDestroy::__getClass(),
+            Schedule::ANNOTATION       => Schedule::__getClass(),
+            Singleton::ANNOTATION      => Singleton::__getClass(),
+            Startup::ANNOTATION        => Startup::__getClass(),
+            Stateful::ANNOTATION       => Stateful::__getClass(),
+            Stateless::ANNOTATION      => Stateless::__getClass(),
+            Timeout::ANNOTATION        => Timeout::__getClass(),
+            Resource::ANNOTATION       => Resource::__getClass()
         );
 
         // return the reflection class instance
@@ -590,16 +619,57 @@ class BeanManager extends GenericStackable implements BeanContext
     public function newInstance($className, array $args = array())
     {
 
+        // initialize the initial context instance
+        $initialContext = new InitialContext();
+
+        // load the application instance
+        $application = reset($args);
+
+        // and inject the application into the initial context
+        if ($application != null && $application instanceof ApplicationInterface) {
+            $initialContext->injectApplication($application);
+        }
+
         // create and return a new instance
         $reflectionClass = $this->newReflectionClass($className);
         $instance = $reflectionClass->newInstanceArgs($args);
 
-        // we've to check for a @PostConstruct annotations
+        // we've to check for method annotations
         foreach ($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
 
             // if we found a @PostConstruct annotation, invoke the method
             if ($reflectionMethod->hasAnnotation(PostConstruct::ANNOTATION)) {
                 $reflectionMethod->invoke($instance); // method MUST has no parameters
+            }
+
+            // if we found a @EnterpriseBean annotation, inject the instance by invoke the setter/inject method
+            if ($reflectionMethod->hasAnnotation(EnterpriseBean::ANNOTATION)) {
+
+                // load the annotation instance and the bean type we want to inject
+                $annotation = $reflectionMethod->getAnnotation(EnterpriseBean::ANNOTATION);
+
+                // load the enterprise beans lookup name specified by the @EnterpriseBean annotation
+                $lookupName = $this->newAnnotationInstance($annotation)->getLookupName();
+
+                // inject the bean instance
+                $reflectionMethod->invoke($instance, $initialContext->lookup($lookupName));
+            }
+        }
+
+        // we've to check for property annotations
+        foreach ($reflectionClass->getProperties() as $reflectionProperty) {
+
+            // if we found a @EnterpriseBean annotation, inject the instance by property injection
+            if ($reflectionProperty->hasAnnotation(EnterpriseBean::ANNOTATION)) {
+
+                // load the annotation instance and the bean type we want to inject
+                $annotation = $reflectionProperty->getAnnotation(EnterpriseBean::ANNOTATION);
+                $lookupName = $this->newAnnotationInstance($annotation)->getLookupName();
+
+                // load the PHP ReflectionProperty instance to inject the bean instance
+                $phpReflectionProperty = $reflectionProperty->toPhpReflectionProperty();
+                $phpReflectionProperty->setAccessible(true);
+                $phpReflectionProperty->setValue($instance, $initialContext->lookup($lookupName));
             }
         }
 

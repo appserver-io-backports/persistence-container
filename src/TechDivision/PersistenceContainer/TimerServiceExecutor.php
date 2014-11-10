@@ -22,6 +22,7 @@
 
 namespace TechDivision\PersistenceContainer;
 
+use AppserverIo\Logger\LoggerUtils;
 use TechDivision\Storage\StorageInterface;
 use TechDivision\Application\Interfaces\ApplicationInterface;
 use TechDivision\EnterpriseBeans\TimerInterface;
@@ -140,6 +141,11 @@ class TimerServiceExecutor extends \Thread
         $application = $this->getApplication();
         $application->registerClassLoaders();
 
+        // try to load the profile logger
+        if ($profileLogger = $application->getInitialContext()->getLogger(LoggerUtils::PROFILE)) {
+            $profileLogger->appendThreadContext('timer-service-executor');
+        }
+
         while (true) { // handle the timer events
 
             // wait 1 second or till we've been notified
@@ -167,6 +173,12 @@ class TimerServiceExecutor extends \Thread
                 if ($executingTimerTask->isFinished()) {
                     unset ($timerTasksExecuting[$key]);
                 }
+            }
+
+            if ($profileLogger) { // profile the size of the timer tasks to be executed
+                $profileLogger->debug(
+                    sprintf('Processed timer service executor, executing %d timer tasks', sizeof($timerTasksExecuting))
+                );
             }
         }
     }
