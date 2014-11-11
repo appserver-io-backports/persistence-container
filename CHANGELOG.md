@@ -1,3 +1,13 @@
+# Version 0.9.2
+
+## Bugfixes
+
+* Bugfix invalid synchronization for SFBs map by making newInstance() + removeBySessionId() methods protected
+
+## Features
+
+* None
+
 # Version 0.9.1
 
 ## Bugfixes

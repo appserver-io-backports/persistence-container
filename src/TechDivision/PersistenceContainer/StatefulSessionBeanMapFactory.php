@@ -122,7 +122,7 @@ class StatefulSessionBeanMapFactory extends \Thread
      *
      * @return void
      */
-    public function removeBySessionId($sessionId)
+    protected function removeBySessionId($sessionId)
     {
         $this->synchronized(function ($self, $id) {
 
@@ -143,39 +143,26 @@ class StatefulSessionBeanMapFactory extends \Thread
      *
      * @return \TechDivision\Session\ServletSession The session instance
      */
-    public function newInstance($sessionId)
+    protected function newInstance($sessionId)
     {
 
-        return $this->synchronized(function ($self, $id) {
+        do {
 
-            // wait if method is locked
-            while ($self->createSession) {
-                $this->wait(100);
-            }
+            $this->synchronized(function ($self, $id) {
 
-            // lock method
-            $self->createSession = true;
+                // set action and session-ID
+                $self->action = StatefulSessionBeanMapFactory::ACTION_NEW_INSTANCE;
+                $self->sessionId = $id;
 
-            // set action and session-ID
-            $self->action = StatefulSessionBeanMapFactory::ACTION_NEW_INSTANCE;
-            $self->sessionId = $id;
+                // send the notification that we're ready
+                $self->notify();
 
-            // send the notification that we're ready
-            $self->notify();
+            }, $this, $sessionId);
 
-            // wait for session bean map to be created
-            $counter = 0;
-            while ($self->sessionPool->has($id) === false && $counter++ < 100) {
-                $self->wait(100);
-            }
+        } while ($this->sessionPool->has($sessionId) === false);
 
-            // unlock the method
-            $self->createSession = false;
-
-            // return the new session instance
-            return $self->sessionPool->get($id);
-
-        }, $this, $sessionId);
+        // return the new session instance
+        return $this->sessionPool->get($sessionId);
     }
 
     /**
@@ -199,39 +186,36 @@ class StatefulSessionBeanMapFactory extends \Thread
         // while we should create threads, to it
         while ($this->run) {
 
-            $this->synchronized(function ($self) {
-
-                // wait until we receive a notification for a method invokation
+            $this->synchronized(function ($self) { // wait until we receive a notification for a method invokation
                 $self->wait(1000000 * StatefulSessionBeanMapFactory::TIME_TO_LIVE);
-
-                switch ($self->action) { // check the method we want to invoke
-
-                    case StatefulSessionBeanMapFactory::ACTION_NEW_INSTANCE: // we want to create a new session instance
-
-                        $self->sessionPool->set($self->sessionId, new StatefulSessionBeanMap());
-
-                        break;
-
-                    case StatefulSessionBeanMapFactory::ACTION_REMOVE_BY_SESSION_ID: // we want to remove a session instance from the pool
-
-                        foreach ($self->sessionPool as $sessionId => $session) {
-                            if ($session instanceof Map && $sessionId === $self->sessionId) {
-                                $self->sessionPool->remove($sessionId);
-                            }
-                        }
-
-                        break;
-
-                    default: // do nothing, because we've an unknown action
-
-                        break;
-                }
-
-                // reset the action and session-ID
-                $self->action = null;
-                $self->sessionId = null;
-
             }, $this);
+
+            switch ($this->action) { // check the method we want to invoke
+
+                case StatefulSessionBeanMapFactory::ACTION_NEW_INSTANCE: // we want to create a new session instance
+
+                    $this->sessionPool->set($this->sessionId, new StatefulSessionBeanMap());
+
+                    break;
+
+                case StatefulSessionBeanMapFactory::ACTION_REMOVE_BY_SESSION_ID: // we want to remove a session instance from the pool
+
+                    foreach ($this->sessionPool as $sessionId => $session) {
+                        if ($session instanceof Map && $sessionId === $this->sessionId) {
+                            $this->sessionPool->remove($sessionId);
+                        }
+                    }
+
+                    break;
+
+                default: // do nothing, because we've an unknown action
+
+                    break;
+            }
+
+            // reset the action and session-ID
+            $this->action = null;
+            $this->sessionId = null;
 
             if ($profileLogger) { // profile the size of the session pool
                 $profileLogger->debug(
