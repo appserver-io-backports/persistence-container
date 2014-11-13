@@ -29,8 +29,8 @@ use TechDivision\Lang\Reflection\MethodInterface;
 use TechDivision\EnterpriseBeans\TimerInterface;
 use TechDivision\EnterpriseBeans\TimedObjectInterface;
 use TechDivision\EnterpriseBeans\TimedObjectInvokerInterface;
-use TechDivision\PersistenceContainer\Annotations\Timeout;
-use TechDivision\PersistenceContainer\Annotations\Schedule;
+use TechDivision\EnterpriseBeans\Annotations\Timeout;
+use TechDivision\EnterpriseBeans\Annotations\Schedule;
 use TechDivision\PersistenceContainerProtocol\BeanContext;
 use TechDivision\Application\Interfaces\ApplicationInterface;
 
