@@ -24,9 +24,9 @@ namespace TechDivision\PersistenceContainer;
 
 use TechDivision\Storage\StackableStorage;
 use TechDivision\PersistenceContainerProtocol\BeanContext;
-use TechDivision\PersistenceContainer\Annotations\Stateless;
-use TechDivision\PersistenceContainer\Annotations\Singleton;
-use TechDivision\PersistenceContainer\Annotations\MessageDriven;
+use TechDivision\EnterpriseBeans\Annotations\Stateless;
+use TechDivision\EnterpriseBeans\Annotations\Singleton;
+use TechDivision\EnterpriseBeans\Annotations\MessageDriven;
 use TechDivision\Application\Interfaces\ApplicationInterface;
 
 /**

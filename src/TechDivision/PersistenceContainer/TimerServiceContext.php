@@ -44,5 +44,5 @@ interface TimerServiceContext extends ServiceContext
      *
      * @var string
      */
-    const IDENTIFIER = 'TechDivision\PersistenceContainer\TimerServiceContext';
+    const IDENTIFIER = 'TimerServiceContext';
 }

@@ -32,17 +32,17 @@ use TechDivision\Storage\StackableStorage;
 use TechDivision\PersistenceContainerProtocol\BeanContext;
 use TechDivision\PersistenceContainerProtocol\RemoteMethod;
 use TechDivision\Application\Interfaces\ApplicationInterface;
-use TechDivision\PersistenceContainer\Annotations\MessageDriven;
-use TechDivision\PersistenceContainer\Annotations\PreDestroy;
-use TechDivision\PersistenceContainer\Annotations\PostConstruct;
-use TechDivision\PersistenceContainer\Annotations\Singleton;
-use TechDivision\PersistenceContainer\Annotations\Startup;
-use TechDivision\PersistenceContainer\Annotations\Stateful;
-use TechDivision\PersistenceContainer\Annotations\Stateless;
-use TechDivision\PersistenceContainer\Annotations\Schedule;
-use TechDivision\PersistenceContainer\Annotations\Timeout;
-use TechDivision\PersistenceContainer\Annotations\EnterpriseBean;
-use TechDivision\PersistenceContainer\Annotations\Resource;
+use TechDivision\EnterpriseBeans\Annotations\MessageDriven;
+use TechDivision\EnterpriseBeans\Annotations\PreDestroy;
+use TechDivision\EnterpriseBeans\Annotations\PostConstruct;
+use TechDivision\EnterpriseBeans\Annotations\Singleton;
+use TechDivision\EnterpriseBeans\Annotations\Startup;
+use TechDivision\EnterpriseBeans\Annotations\Stateful;
+use TechDivision\EnterpriseBeans\Annotations\Stateless;
+use TechDivision\EnterpriseBeans\Annotations\Schedule;
+use TechDivision\EnterpriseBeans\Annotations\Timeout;
+use TechDivision\EnterpriseBeans\Annotations\EnterpriseBean;
+use TechDivision\EnterpriseBeans\Annotations\Resource;
 use TechDivision\Lang\Reflection\ClassInterface;
 use TechDivision\Lang\Reflection\ReflectionClass;
 use TechDivision\Lang\Reflection\ReflectionObject;
@@ -76,6 +76,18 @@ class BeanManager extends GenericStackable implements BeanContext
     }
 
     /**
+     * Inject the application instance.
+     *
+     * @param \TechDivision\Application\Interfaces\ApplicationInterface $application The application instance
+     *
+     * @return void
+     */
+    public function injectApplication(ApplicationInterface $application)
+    {
+        $this->application = $application;
+    }
+
+    /**
      * Injects the absolute path to the web application.
      *
      * @param string $webappPath The absolute path to this web application
@@ -97,18 +109,6 @@ class BeanManager extends GenericStackable implements BeanContext
     public function injectResourceLocator(ResourceLocator $resourceLocator)
     {
         $this->resourceLocator = $resourceLocator;
-    }
-
-    /**
-     * Injects the storage for the naming directory.
-     *
-     * @param \TechDivision\Storage\StorageInterface $namingDirectory The storage for the naming directory
-     *
-     * @return void
-     */
-    public function injectNamingDirectory(StorageInterface $namingDirectory)
-    {
-        $this->namingDirectory = $namingDirectory;
     }
 
     /**
@@ -216,7 +216,7 @@ class BeanManager extends GenericStackable implements BeanContext
                 // if we found a bean with @Singleton + @Startup annotation
                 if ($reflectionClass->hasAnnotation(Singleton::ANNOTATION) &&
                     $reflectionClass->hasAnnotation(Startup::ANNOTATION)) { // instanciate the bean
-                    $this->getResourceLocator()->lookup($this, $reflectionClass->getShortName(), null, array($application));
+                    $this->getNamingDirectory()->search($reflectionClass->getShortName(), array(null, array($application)));
                 }
 
             } catch (\Exception $e) { // if class can not be reflected continue with next class
@@ -268,24 +268,37 @@ class BeanManager extends GenericStackable implements BeanContext
             return;
         }
 
-        // create the annotation and real PHP reflection class instance
-        $annotationInstance = $this->newAnnotationInstance($reflectionAnnotation);
+        // load the application name
+        $applicationName = $this->getApplication()->getName();
 
         // load class name and short class name
         $className = $reflectionClass->getName();
         $shortClassName = $reflectionClass->getShortName();
 
-        // register the bean with the real class name (without namespace)
-        $this->getNamingDirectory()->set($shortClassName, $className);
+        // array with sprintf formats to bind enterprise beans to the naming directory
+        $namingDirectoryNames = array('%2$s', 'php:app/%2$s', 'php:global/%1$s/%2$s');
 
-        // register the bean with the name defined as @Annotation(name=****)
-        if ($name = $annotationInstance->getName()) {
-            $this->getNamingDirectory()->set($name, $className);
-        }
+        // initialize the annotation instance
+        $annotationInstance = $this->newAnnotationInstance($reflectionAnnotation);
 
-        // register the bean with the name defined as @Annotation(mappedName=****)
-        if ($mappedName = $annotationInstance->getMappedName()) {
-            $this->getNamingDirectory()->set($mappedName, $className);
+        // iterate over the array with the possible naming directory names
+        foreach ($namingDirectoryNames as $format) {
+
+            // register the bean with the class short name (default)
+            $name = vsprintf($format, array($applicationName, $shortClassName));
+            $this->getNamingDirectory()->bind($name, array(&$this, 'lookup'), array($className));
+
+            // register the bean with the name defined as @Annotation(name=****)
+            if ($nameAttribute = $annotationInstance->getName()) {
+                $name = vsprintf($format, array($applicationName, $nameAttribute));
+                $this->getNamingDirectory()->bind($name, array(&$this, 'lookup'), array($className));
+            }
+
+            // register the bean with the name defined as @Annotation(mappedName=****)
+            if ($mappedNameAttribute = $annotationInstance->getMappedName()) {
+                $name = vsprintf($format, array($applicationName, $mappedNameAttribute));
+                $this->getNamingDirectory()->bind($name, array(&$this, 'lookup'), array($className));
+            }
         }
     }
 
@@ -298,7 +311,17 @@ class BeanManager extends GenericStackable implements BeanContext
      */
     protected function newAnnotationInstance(AnnotationInterface $annotation)
     {
-        return $annotation->newInstance($annotation->getAnnotationName(), $annotation->getValues());
+        return $this->getApplication()->newAnnotationInstance($annotation);
+    }
+
+    /**
+     * Returns the application instance.
+     *
+     * @return string The application instance
+     */
+    public function getApplication()
+    {
+        return $this->application;
     }
 
     /**
@@ -328,7 +351,7 @@ class BeanManager extends GenericStackable implements BeanContext
      */
     public function getNamingDirectory()
     {
-        return $this->namingDirectory;
+        return $this->getApplication()->getNamingDirectory();
     }
 
     /**
@@ -382,7 +405,32 @@ class BeanManager extends GenericStackable implements BeanContext
      */
     public function locate(RemoteMethod $remoteMethod, array $args = array())
     {
-        return $this->getResourceLocator()->locate($this, $remoteMethod, $args);
+
+        // load the information to locate the requested bean
+        $className = $remoteMethod->getClassName();
+        $sessionId = $remoteMethod->getSessionId();
+
+        // lookup the requested bean
+        return $this->lookup($className, $sessionId, $args);
+    }
+
+    /**
+     * Runs a lookup for the session bean with the passed class name and
+     * session ID.
+     *
+     * If the passed class name is a session bean an instance
+     * will be returned.
+     *
+     * @param string $className The name of the session bean's class
+     * @param string $sessionId The session ID
+     * @param array  $args      The arguments passed to the session beans constructor
+     *
+     * @return object The requested bean instance
+     * @throws \TechDivision\PersistenceContainer\InvalidBeanTypeException Is thrown if passed class name is no session bean or is a entity bean (not implmented yet)
+     */
+    public function lookup($className, $sessionId = null, array $args = array())
+    {
+        return $this->getResourceLocator()->lookup($this, $className, $sessionId, $args);
     }
 
     /**
@@ -536,7 +584,7 @@ class BeanManager extends GenericStackable implements BeanContext
         }
 
         // we've an unknown bean type => throw an exception
-        throw new InvalidBeanTypeException('Try to attach bean with mission enterprise annotation');
+        throw new InvalidBeanTypeException('Try to attach bean with missing enterprise annotation');
     }
 
     /**
@@ -575,37 +623,7 @@ class BeanManager extends GenericStackable implements BeanContext
      */
     public function newReflectionClass($className)
     {
-
-        // initialize the array with the annotations we want to ignore
-        $annotationsToIgnore = array(
-            'author',
-            'package',
-            'license',
-            'copyright',
-            'param',
-            'return',
-            'throws',
-            'see',
-            'link'
-        );
-
-        // initialize the array with the aliases for the enterprise bean annotations
-        $annotationAliases = array(
-            EnterpriseBean::ANNOTATION => EnterpriseBean::__getClass(),
-            MessageDriven::ANNOTATION  => MessageDriven::__getClass(),
-            PostConstruct::ANNOTATION  => PostConstruct::__getClass(),
-            PreDestroy::ANNOTATION     => PreDestroy::__getClass(),
-            Schedule::ANNOTATION       => Schedule::__getClass(),
-            Singleton::ANNOTATION      => Singleton::__getClass(),
-            Startup::ANNOTATION        => Startup::__getClass(),
-            Stateful::ANNOTATION       => Stateful::__getClass(),
-            Stateless::ANNOTATION      => Stateless::__getClass(),
-            Timeout::ANNOTATION        => Timeout::__getClass(),
-            Resource::ANNOTATION       => Resource::__getClass()
-        );
-
-        // return the reflection class instance
-        return new ReflectionClass($className, $annotationsToIgnore, $annotationAliases);
+        return $this->getApplication()->newReflectionClass($className);
     }
 
     /**
@@ -618,63 +636,7 @@ class BeanManager extends GenericStackable implements BeanContext
      */
     public function newInstance($className, array $args = array())
     {
-
-        // initialize the initial context instance
-        $initialContext = new InitialContext();
-
-        // load the application instance
-        $application = reset($args);
-
-        // and inject the application into the initial context
-        if ($application != null && $application instanceof ApplicationInterface) {
-            $initialContext->injectApplication($application);
-        }
-
-        // create and return a new instance
-        $reflectionClass = $this->newReflectionClass($className);
-        $instance = $reflectionClass->newInstanceArgs($args);
-
-        // we've to check for method annotations
-        foreach ($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
-
-            // if we found a @PostConstruct annotation, invoke the method
-            if ($reflectionMethod->hasAnnotation(PostConstruct::ANNOTATION)) {
-                $reflectionMethod->invoke($instance); // method MUST has no parameters
-            }
-
-            // if we found a @EnterpriseBean annotation, inject the instance by invoke the setter/inject method
-            if ($reflectionMethod->hasAnnotation(EnterpriseBean::ANNOTATION)) {
-
-                // load the annotation instance and the bean type we want to inject
-                $annotation = $reflectionMethod->getAnnotation(EnterpriseBean::ANNOTATION);
-
-                // load the enterprise beans lookup name specified by the @EnterpriseBean annotation
-                $lookupName = $this->newAnnotationInstance($annotation)->getLookupName();
-
-                // inject the bean instance
-                $reflectionMethod->invoke($instance, $initialContext->lookup($lookupName));
-            }
-        }
-
-        // we've to check for property annotations
-        foreach ($reflectionClass->getProperties() as $reflectionProperty) {
-
-            // if we found a @EnterpriseBean annotation, inject the instance by property injection
-            if ($reflectionProperty->hasAnnotation(EnterpriseBean::ANNOTATION)) {
-
-                // load the annotation instance and the bean type we want to inject
-                $annotation = $reflectionProperty->getAnnotation(EnterpriseBean::ANNOTATION);
-                $lookupName = $this->newAnnotationInstance($annotation)->getLookupName();
-
-                // load the PHP ReflectionProperty instance to inject the bean instance
-                $phpReflectionProperty = $reflectionProperty->toPhpReflectionProperty();
-                $phpReflectionProperty->setAccessible(true);
-                $phpReflectionProperty->setValue($instance, $initialContext->lookup($lookupName));
-            }
-        }
-
-        // return the instance here
-        return $instance;
+        return $this->getApplication()->newInstance($className, $args);
     }
 
     /**

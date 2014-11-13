@@ -1,3 +1,15 @@
+# Version 0.9.3
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Add BeanManager::lookup() method
+* Move Annotations to techdivision/enterprisebeans package
+* Switch to NamingDirectory integration 
+
 # Version 0.9.2
 
 ## Bugfixes

@@ -22,15 +22,17 @@
 namespace TechDivision\PersistenceContainer;
 
 use TechDivision\Lang\Reflection\ReflectionClass;
-use TechDivision\PersistenceContainer\Annotations\MessageDriven;
-use TechDivision\PersistenceContainer\Annotations\PostConstruct;
-use TechDivision\PersistenceContainer\Annotations\PreDestroy;
-use TechDivision\PersistenceContainer\Annotations\Schedule;
-use TechDivision\PersistenceContainer\Annotations\Singleton;
-use TechDivision\PersistenceContainer\Annotations\Startup;
-use TechDivision\PersistenceContainer\Annotations\Stateful;
-use TechDivision\PersistenceContainer\Annotations\Stateless;
-use TechDivision\PersistenceContainer\Annotations\Timeout;
+use TechDivision\EnterpriseBeans\Annotations\MessageDriven;
+use TechDivision\EnterpriseBeans\Annotations\PostConstruct;
+use TechDivision\EnterpriseBeans\Annotations\PreDestroy;
+use TechDivision\EnterpriseBeans\Annotations\Schedule;
+use TechDivision\EnterpriseBeans\Annotations\Singleton;
+use TechDivision\EnterpriseBeans\Annotations\Startup;
+use TechDivision\EnterpriseBeans\Annotations\Stateful;
+use TechDivision\EnterpriseBeans\Annotations\Stateless;
+use TechDivision\EnterpriseBeans\Annotations\Timeout;
+use TechDivision\EnterpriseBeans\Annotations\EnterpriseBean;
+use TechDivision\EnterpriseBeans\Annotations\Resource;
 
 /**
  * A wrapper instance for a reflection class.
@@ -77,15 +79,17 @@ class TimedObject extends ReflectionClass
         // initialize the array with the aliases for the enterprise bean annotations
         $annotationAliases = array_merge(
             array(
-                MessageDriven::ANNOTATION => MessageDriven::__getClass(),
-                PostConstruct::ANNOTATION => PostConstruct::__getClass(),
-                PreDestroy::ANNOTATION    => PreDestroy::__getClass(),
-                Schedule::ANNOTATION      => Schedule::__getClass(),
-                Singleton::ANNOTATION     => Singleton::__getClass(),
-                Startup::ANNOTATION       => Startup::__getClass(),
-                Stateful::ANNOTATION      => Stateful::__getClass(),
-                Stateless::ANNOTATION     => Stateless::__getClass(),
-                Timeout::ANNOTATION       => Timeout::__getClass()
+                MessageDriven::ANNOTATION  => MessageDriven::__getClass(),
+                PostConstruct::ANNOTATION  => PostConstruct::__getClass(),
+                PreDestroy::ANNOTATION     => PreDestroy::__getClass(),
+                Schedule::ANNOTATION       => Schedule::__getClass(),
+                Singleton::ANNOTATION      => Singleton::__getClass(),
+                Startup::ANNOTATION        => Startup::__getClass(),
+                Stateful::ANNOTATION       => Stateful::__getClass(),
+                Stateless::ANNOTATION      => Stateless::__getClass(),
+                Timeout::ANNOTATION        => Timeout::__getClass(),
+                EnterpriseBean::ANNOTATION => EnterpriseBean::__getClass(),
+                Resource::ANNOTATION       => Resource::__getClass()
             )
         );
 

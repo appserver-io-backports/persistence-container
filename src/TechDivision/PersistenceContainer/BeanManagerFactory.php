@@ -77,8 +77,8 @@ class BeanManagerFactory
         // initialize the bean manager
         $beanManager = new BeanManager();
         $beanManager->injectData($data);
+        $beanManager->injectApplication($application);
         $beanManager->injectResourceLocator($beanLocator);
-        $beanManager->injectNamingDirectory($namingDirectory);
         $beanManager->injectWebappPath($application->getWebappPath());
         $beanManager->injectSingletonSessionBeans($singletonSessionBeans);
         $beanManager->injectStatefulSessionBeans($statefulSessionBeans);

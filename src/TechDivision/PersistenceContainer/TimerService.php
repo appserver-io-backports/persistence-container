@@ -32,7 +32,7 @@ use TechDivision\EnterpriseBeans\ScheduleExpression;
 use TechDivision\EnterpriseBeans\TimerServiceInterface;
 use TechDivision\EnterpriseBeans\TimedObjectInvokerInterface;
 use TechDivision\PersistenceContainer\Utils\TimerState;
-use TechDivision\PersistenceContainer\Annotations\Schedule;
+use TechDivision\EnterpriseBeans\Annotations\Schedule;
 use TechDivision\PersistenceContainerProtocol\RemoteMethodCall;
 
 /**
