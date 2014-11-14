@@ -1,3 +1,14 @@
+# Version 0.9.4
+
+## Bugfixes
+
+* Remove unnecessary stackable initialization from BeanManagerFactory::visit() method
+
+## Features
+
+* Add session-ID, necessary to create new SFBs, to BeanManager::newInstance() method
+* Invoke methods with a @Startup annotation in BeanLocator::lookup() method now
+
 # Version 0.9.3
 
 ## Bugfixes

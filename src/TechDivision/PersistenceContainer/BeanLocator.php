@@ -28,6 +28,7 @@ use TechDivision\EnterpriseBeans\Annotations\Stateful;
 use TechDivision\EnterpriseBeans\Annotations\Singleton;
 use TechDivision\EnterpriseBeans\Annotations\Stateless;
 use TechDivision\EnterpriseBeans\Annotations\MessageDriven;
+use TechDivision\EnterpriseBeans\Annotations\PostConstruct;
 
 /**
  * The bean resource locator implementation.
@@ -95,7 +96,19 @@ class BeanLocator implements ResourceLocator
             }
 
             // if not create a new instance and return it
-            return $beanManager->newInstance($className, $args);
+            $instance = $beanManager->newInstance($className, $sessionId, $args);
+
+            // we've to check for @PostConstruct method annotations
+            foreach ($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
+
+                // if we found a @PostConstruct annotation, invoke the method
+                if ($reflectionMethod->hasAnnotation(PostConstruct::ANNOTATION)) {
+                    $reflectionMethod->invoke($instance); // method MUST has no parameters
+                }
+            }
+
+            // return the instance
+            return $instance;
         }
 
         // @Singleton
@@ -112,10 +125,19 @@ class BeanLocator implements ResourceLocator
             }
 
             // if not create a new instance and return it
-            $instance = $beanManager->newInstance($className, $args);
+            $instance = $beanManager->newInstance($className, $sessionId, $args);
 
             // add the singleton session bean to the container
             $beanManager->getSingletonSessionBeans()->set($className, $instance);
+
+            // we've to check for @PostConstruct method annotations
+            foreach ($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
+
+                // if we found a @PostConstruct annotation, invoke the method
+                if ($reflectionMethod->hasAnnotation(PostConstruct::ANNOTATION)) {
+                    $reflectionMethod->invoke($instance); // method MUST has no parameters
+                }
+            }
 
             // return the instance
             return $instance;
@@ -126,7 +148,19 @@ class BeanLocator implements ResourceLocator
             $reflectionClass->hasAnnotation(MessageDriven::ANNOTATION)) {
 
             // if not create a new instance and return it
-            return $beanManager->newInstance($className, $args);
+            $instance = $beanManager->newInstance($className, $sessionId, $args);
+
+            // we've to check for @PostConstruct method annotations
+            foreach ($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
+
+                // if we found a @PostConstruct annotation, invoke the method
+                if ($reflectionMethod->hasAnnotation(PostConstruct::ANNOTATION)) {
+                    $reflectionMethod->invoke($instance); // method MUST has no parameters
+                }
+            }
+
+            // return the instance
+            return $instance;
         }
 
         // we've an unknown bean type => throw an exception
