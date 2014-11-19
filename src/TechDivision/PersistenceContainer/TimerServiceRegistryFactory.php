@@ -66,6 +66,6 @@ class TimerServiceRegistryFactory
         $serviceRegistry->injectWebappPath($application->getWebappPath());
 
         // attach the instance
-        $application->addManager($serviceRegistry);
+        $application->addManager($serviceRegistry, $managerConfiguration);
     }
 }

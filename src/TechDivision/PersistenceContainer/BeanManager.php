@@ -216,7 +216,7 @@ class BeanManager extends GenericStackable implements BeanContext
                 // if we found a bean with @Singleton + @Startup annotation
                 if ($reflectionClass->hasAnnotation(Singleton::ANNOTATION) &&
                     $reflectionClass->hasAnnotation(Startup::ANNOTATION)) { // instanciate the bean
-                    $this->getNamingDirectory()->search($reflectionClass->getShortName(), array(null, array($application)));
+                    $this->getApplication()->search($reflectionClass->getShortName(), array(null, array($application)));
                 }
 
             } catch (\Exception $e) { // if class can not be reflected continue with next class
@@ -268,37 +268,33 @@ class BeanManager extends GenericStackable implements BeanContext
             return;
         }
 
-        // load the application name
-        $applicationName = $this->getApplication()->getName();
-
         // load class name and short class name
         $className = $reflectionClass->getName();
-        $shortClassName = $reflectionClass->getShortName();
-
-        // array with sprintf formats to bind enterprise beans to the naming directory
-        $namingDirectoryNames = array('%2$s', 'php:app/%2$s', 'php:global/%1$s/%2$s');
 
         // initialize the annotation instance
         $annotationInstance = $this->newAnnotationInstance($reflectionAnnotation);
 
-        // iterate over the array with the possible naming directory names
-        foreach ($namingDirectoryNames as $format) {
+        // load the default name to register in naming directory
+        $nameAttribute = $annotationInstance->getName();
+        if ($nameAttribute == null) { // if @Annotation(name=****) is NOT set, we use the short class name by default
+            $nameAttribute = $reflectionClass->getShortName();
+        }
 
-            // register the bean with the class short name (default)
-            $name = vsprintf($format, array($applicationName, $shortClassName));
-            $this->getNamingDirectory()->bind($name, array(&$this, 'lookup'), array($className));
+        // register the bean with the default name (short class name OR @Annotation(name=****))
+        $this->getApplication()->bind($nameAttribute, array(&$this, 'lookup'), array($className));
 
-            // register the bean with the name defined as @Annotation(name=****)
-            if ($nameAttribute = $annotationInstance->getName()) {
-                $name = vsprintf($format, array($applicationName, $nameAttribute));
-                $this->getNamingDirectory()->bind($name, array(&$this, 'lookup'), array($className));
-            }
+        // register the bean with the interface defined as @Annotation(beanInterface=****)
+        if ($beanInterfaceAttribute = $annotationInstance->getBeanInterface()) {
+            $this->getApplication()->bind($beanInterfaceAttribute, array(&$this, 'lookup'), array($className));
+        }
+        // register the bean with the name defined as @Annotation(beanName=****)
+        if ($beanNameAttribute = $annotationInstance->getBeanName()) {
+            $this->getNamingDirectory()->bind($beanNameAttribute, array(&$this, 'lookup'), array($className));
+        }
 
-            // register the bean with the name defined as @Annotation(mappedName=****)
-            if ($mappedNameAttribute = $annotationInstance->getMappedName()) {
-                $name = vsprintf($format, array($applicationName, $mappedNameAttribute));
-                $this->getNamingDirectory()->bind($name, array(&$this, 'lookup'), array($className));
-            }
+        // register the bean with the name defined as @Annotation(mappedName=****)
+        if ($mappedNameAttribute = $annotationInstance->getMappedName()) {
+            $this->getNamingDirectory()->bind($mappedNameAttribute, array(&$this, 'lookup'), array($className));
         }
     }
 
@@ -311,7 +307,7 @@ class BeanManager extends GenericStackable implements BeanContext
      */
     protected function newAnnotationInstance(AnnotationInterface $annotation)
     {
-        return $this->getApplication()->newAnnotationInstance($annotation);
+        return $this->getApplication()->search('ProviderInterface')->newAnnotationInstance($annotation);
     }
 
     /**
@@ -623,7 +619,7 @@ class BeanManager extends GenericStackable implements BeanContext
      */
     public function newReflectionClass($className)
     {
-        return $this->getApplication()->newReflectionClass($className);
+        return $this->getApplication()->search('ProviderInterface')->newReflectionClass($className);
     }
 
     /**
@@ -637,7 +633,7 @@ class BeanManager extends GenericStackable implements BeanContext
      */
     public function newInstance($className, $sessionId = null, array $args = array())
     {
-        return $this->getApplication()->newInstance($className, $sessionId, $args);
+        return $this->getApplication()->search('ProviderInterface')->newInstance($className, $sessionId, $args);
     }
 
     /**

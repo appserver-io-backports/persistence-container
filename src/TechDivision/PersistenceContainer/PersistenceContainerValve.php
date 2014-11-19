@@ -70,8 +70,8 @@ class PersistenceContainerValve implements Valve
             $sessionId = $remoteMethod->getSessionId();
 
             // load the bean manager and the bean instance
-            $beanManager = $application->getNamingDirectory()->search(BeanContext::IDENTIFIER);
-            $instance = $application->getNamingDirectory()->search($className, array($sessionId, array($application)));
+            $beanManager = $application->search('BeanContext');
+            $instance = $application->search($className, array($sessionId, array($application)));
 
             // invoke the remote method call on the local instance
             $response = call_user_func_array(array($instance, $methodName), $parameters);

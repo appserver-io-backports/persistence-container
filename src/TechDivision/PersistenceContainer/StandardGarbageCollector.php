@@ -89,7 +89,7 @@ class StandardGarbageCollector extends \Thread
             });
 
             // we need the bean manager that handles all the beans
-            $beanManager = $application->getManager(BeanContext::IDENTIFIER);
+            $beanManager = $application->search('BeanContext');
 
             // load the map with the stateful session beans
             $statefulSessionBeans = $beanManager->getStatefulSessionBeans();
