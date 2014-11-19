@@ -85,6 +85,6 @@ class BeanManagerFactory
         $beanManager->injectStatefulSessionBeanMapFactory($statefulSessionBeanMapFactory);
 
         // attach the instance
-        $application->addManager($beanManager);
+        $application->addManager($beanManager, $managerConfiguration);
     }
 }

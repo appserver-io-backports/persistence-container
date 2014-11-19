@@ -1,3 +1,14 @@
+# Version 0.9.5
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Use application context to lookup QueueContext
+* Update constant IDENTIFIER to use short class name instead of fully qualified one
+
 # Version 0.9.4
 
 ## Bugfixes
